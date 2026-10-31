@@ -26,7 +26,7 @@ symsvel remove symsvel-framework/module-test-back
 
 `create-project` appelle `composer create-project symsvel-framework/back backend`, puis `php bin/console symsvel:install`. Les projets partiellement créés ne sont jamais supprimés automatiquement.
 
-Le mode `--dev` crée le squelette depuis `dev-main`, résout Core et Tooling sur `dev-main` et lance l'installation avec `APP_ENV=core`. Le mode normal conserve les releases stables. Un nouveau répertoire est nécessaire pour chaque essai.
+Le mode `--dev` crée le squelette depuis `dev-main`, résout Core et Tooling sur `dev-main` et lance l'installation dans l'environnement Symfony standard (`dev`). Le mode normal conserve les releases stables. Un nouveau répertoire est nécessaire pour chaque essai.
 
 Les opérations de packages délèguent au lanceur transactionnel **déjà fourni par le Tooling** (`backend/scripts/symsvel-composer-transaction.php`). Aucun moteur transactionnel n'est dupliqué.
 
