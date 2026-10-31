@@ -31,7 +31,7 @@ SymSvel CLI (development)
 
 Usage:
   symsvel doctor
-  symsvel create-project --components=all|bo|app|front [--directory=backend]
+  symsvel create-project --components=all|bo|app|front [--directory=backend] [--dev]
   symsvel require <package> [constraint]
   symsvel update [package]
   symsvel remove <package>
@@ -74,8 +74,11 @@ HELP;
     {
         $components = 'all';
         $directory = 'backend';
+        $dev = false;
         foreach ($args as $arg) {
-            if (str_starts_with($arg, '--components=')) {
+            if ($arg === '--dev') {
+                $dev = true;
+            } elseif (str_starts_with($arg, '--components=')) {
                 $components = substr($arg, 13);
             } elseif (str_starts_with($arg, '--directory=')) {
                 $directory = substr($arg, 12);
@@ -93,13 +96,19 @@ HELP;
             throw new \RuntimeException('Destination déjà existante : '.$directory.' (aucune suppression automatique).');
         }
         self::assertRequirements(true);
-        self::run(['composer', 'create-project', 'symsvel-framework/back', $directory], getcwd());
+        self::run(array_merge(['composer', 'create-project', 'symsvel-framework/back', $directory], $dev ? ['dev-main'] : []), getcwd());
         $backend = realpath($directory);
         if ($backend === false || !is_file($backend.'/bin/console')) {
             throw new \RuntimeException('Projet créé, mais bin/console introuvable. Destination conservée : '.$directory);
         }
         try {
-            self::run([PHP_BINARY, 'bin/console', 'symsvel:install', '--components='.$components], $backend);
+            if ($dev) {
+                // The skeleton pins stable versions; explicitly resolve the current
+                // development branches before booting Symfony in the core environment.
+                self::run(['composer', 'require', '--dev', '--with-all-dependencies', 'symsvel-framework/tooling:dev-main'], $backend);
+                self::run(['composer', 'require', '--with-all-dependencies', 'symsvel-framework/core:dev-main'], $backend);
+            }
+            self::run([PHP_BINARY, 'bin/console', 'symsvel:install', '--components='.$components], $backend, $dev ? ['APP_ENV' => 'core'] : []);
         } catch (\Throwable $e) {
             throw new \RuntimeException('Création partielle : '.$e->getMessage().'. Projet conservé dans '.$backend);
         }
@@ -170,10 +179,11 @@ HELP;
         return proc_close($process) === 0;
     }
 
-    private static function run(array $argv, string $cwd): void
+    private static function run(array $argv, string $cwd, array $environment = []): void
     {
         echo '[symsvel] '.implode(' ', array_map('escapeshellarg', $argv)).PHP_EOL;
-        $process = proc_open($argv, [0 => STDIN, 1 => STDOUT, 2 => STDERR], $pipes, $cwd);
+        $env = $environment === [] ? null : array_merge(getenv() ?: [], $_ENV, $environment);
+        $process = proc_open($argv, [0 => STDIN, 1 => STDOUT, 2 => STDERR], $pipes, $cwd, $env);
         if (!is_resource($process)) {
             throw new \RuntimeException('Impossible de démarrer la commande.');
         }
