@@ -161,13 +161,6 @@ HELP;
 
     private static function available(string $program): bool
     {
-        $process = proc_open(['command', '-v', $program], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
-        // "command" is a shell builtin; use a POSIX shell explicitly.
-        if (is_resource($process)) {
-            fclose($pipes[1]);
-            fclose($pipes[2]);
-            proc_close($process);
-        }
         $process = proc_open(['/bin/sh', '-c', 'command -v '.escapeshellarg($program).' >/dev/null 2>&1'], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
         if (!is_resource($process)) {
             return false;
