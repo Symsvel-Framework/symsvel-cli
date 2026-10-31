@@ -108,7 +108,7 @@ HELP;
                 self::run(['composer', 'require', '--dev', '--with-all-dependencies', 'symsvel-framework/tooling:dev-main'], $backend);
                 self::run(['composer', 'require', '--with-all-dependencies', 'symsvel-framework/core:dev-main'], $backend);
             }
-            self::run([PHP_BINARY, 'bin/console', 'symsvel:install', '--components='.$components], $backend, $dev ? ['APP_ENV' => 'core'] : []);
+            self::run([PHP_BINARY, 'bin/console', 'symsvel:install', '--components='.$components], $backend);
         } catch (\Throwable $e) {
             throw new \RuntimeException('Création partielle : '.$e->getMessage().'. Projet conservé dans '.$backend);
         }
