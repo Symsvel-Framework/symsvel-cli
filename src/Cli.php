@@ -96,7 +96,17 @@ HELP;
             throw new \RuntimeException('Destination déjà existante : '.$directory.' (aucune suppression automatique).');
         }
         self::assertRequirements(true);
-        self::run(array_merge(['composer', 'create-project', 'symsvel-framework/back', $directory], $dev ? ['dev-main'] : []), getcwd());
+        $create = ['composer', 'create-project'];
+        if ($dev) {
+            // Resolve the skeleton directly from GitHub, bypassing potentially stale Satis metadata.
+            $create[] = '--repository={"type":"vcs","url":"https://github.com/Symsvel-Framework/symsvel-back.git"}';
+            $create[] = '--no-cache';
+        }
+        array_push($create, 'symsvel-framework/back', $directory);
+        if ($dev) {
+            $create[] = 'dev-main';
+        }
+        self::run($create, getcwd());
         $backend = realpath($directory);
         if ($backend === false || !is_file($backend.'/bin/console')) {
             throw new \RuntimeException('Projet créé, mais bin/console introuvable. Destination conservée : '.$directory);
@@ -104,7 +114,7 @@ HELP;
         try {
             if ($dev) {
                 // The skeleton pins stable versions; explicitly resolve the current
-                // development branches before booting Symfony in the core environment.
+                // development branches before booting Symfony in the dev environment.
                 self::run(['composer', 'require', '--dev', '--with-all-dependencies', 'symsvel-framework/tooling:dev-main'], $backend);
                 self::run(['composer', 'require', '--with-all-dependencies', 'symsvel-framework/core:dev-main'], $backend);
             }
