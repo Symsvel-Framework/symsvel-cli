@@ -115,8 +115,13 @@ HELP;
             if ($dev) {
                 // The skeleton pins stable versions; explicitly resolve the current
                 // development branches before booting Symfony in the dev environment.
-                self::run(['composer', 'require', '--dev', '--with-all-dependencies', 'symsvel-framework/tooling:dev-main'], $backend);
-                self::run(['composer', 'require', '--with-all-dependencies', 'symsvel-framework/core:dev-main'], $backend);
+                self::run(['composer', 'config', 'repositories.symsvel-tooling-dev', 'vcs', 'https://github.com/Symsvel-Framework/symsvel-tooling.git'], $backend);
+                self::run(['composer', 'config', 'repositories.symsvel-core-dev', 'vcs', 'https://github.com/Symsvel-Framework/symsvel-core.git'], $backend);
+                self::run(['composer', 'require', '--dev', '--with-all-dependencies', '--no-cache', 'symsvel-framework/tooling:dev-main'], $backend);
+                self::run(['composer', 'require', '--with-all-dependencies', '--no-cache', 'symsvel-framework/core:dev-main'], $backend);
+                if (!is_file($backend.'/vendor/symsvel-framework/tooling/bin/symsvel-composer-transaction.php')) {
+                    throw new \RuntimeException('Tooling development checkout missing Composer transaction launcher.');
+                }
             }
             self::run([PHP_BINARY, 'bin/console', 'symsvel:install', '--components='.$components], $backend);
         } catch (\Throwable $e) {
