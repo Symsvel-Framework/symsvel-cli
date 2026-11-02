@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace SymSvelCli;
 
-require_once __DIR__.'/DatabaseSetup.php';
-
 final class Cli
 {
     public static function main(array $args): int
@@ -16,7 +14,6 @@ final class Cli
                 'help', '--help', '-h' => self::help(),
                 '--version', '-V', 'version' => self::version(),
                 'doctor' => self::doctor($args),
-                'setup-db' => DatabaseSetup::run(self::findBackend(getcwd()) ?? throw new \RuntimeException('Projet SymSvel introuvable.')),
                 'create-project' => self::createProject($args),
                 'require', 'update', 'remove' => self::composer($command, $args),
                 default => throw new \RuntimeException("Commande inconnue : $command"),
@@ -34,7 +31,6 @@ SymSvel CLI (development)
 
 Usage:
   symsvel doctor
-  symsvel setup-db
   symsvel create-project --components=all|bo|app|front [--directory=backend] [--dev]
   symsvel require <package> [constraint]
   symsvel update [package]
@@ -127,7 +123,6 @@ HELP;
                     throw new \RuntimeException('Tooling development checkout missing Composer transaction launcher.');
                 }
             }
-            DatabaseSetup::run($backend);
             self::run([PHP_BINARY, 'bin/console', 'symsvel:install', '--components='.$components], $backend);
         } catch (\Throwable $e) {
             throw new \RuntimeException('Création partielle : '.$e->getMessage().'. Projet conservé dans '.$backend);
