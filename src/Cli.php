@@ -179,6 +179,16 @@ HELP;
             }
         }
 
+        // An explicit workspace may point to a different project than the current directory.
+        if ($workspaceOption !== null) {
+            $selectedBackend = self::findBackend($workspace);
+            if ($selectedBackend !== null && dirname($selectedBackend) === $workspace) {
+                $backend = $selectedBackend;
+            } else {
+                $backend = null;
+            }
+        }
+
         if ($backend !== null) {
             // Always delegate to the Tooling generator installed with the Symfony backend.
             self::run([PHP_BINARY, 'bin/console', 'symsvel:make:module', $name, '--workspace='.$workspace, '--scopes='.$scopes, '--vendor='.$vendor, '--no-interaction'], $backend);
