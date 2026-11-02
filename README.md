@@ -19,13 +19,12 @@ Le chemin `/usr/local/bin` doit exister et être accessible en écriture. Aucun 
 ```bash
 symsvel create-project --components=all
 symsvel create-project --components=all --dev
-symsvel setup-db
 symsvel require symsvel-framework/module-test-back
 symsvel update symsvel-framework/module-test-back
 symsvel remove symsvel-framework/module-test-back
 ```
 
-`create-project` appelle `composer create-project symsvel-framework/back backend`, puis configure une connexion PostgreSQL locale validée dans `backend/.env.local` (base existante, extension PHP `pdo_pgsql` requise), avant `php bin/console symsvel:install`. `setup-db` permet de reconfigurer la connexion depuis un projet existant. Les projets partiellement créés ne sont jamais supprimés automatiquement.
+`create-project` appelle `composer create-project symsvel-framework/back backend`, puis `php bin/console symsvel:install`. La configuration BDD reste assurée par le setup web existant, avant l'accès au BO. Les projets partiellement créés ne sont jamais supprimés automatiquement.
 
 Le mode `--dev` crée le squelette depuis `dev-main`, résout Core et Tooling sur `dev-main` et lance l'installation dans l'environnement Symfony standard (`dev`). Le mode normal conserve les releases stables. Un nouveau répertoire est nécessaire pour chaque essai.
 
