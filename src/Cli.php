@@ -181,8 +181,7 @@ HELP;
 
         if ($backend !== null) {
             // Always delegate to the Tooling generator installed with the Symfony backend.
-            $console = ['php' => PHP_BINARY, 'script' => 'bin/console'];
-            self::run([$console['php'], $console['script'], 'symsvel:make:module', $name, '--workspace='.$workspace, '--scopes='.$scopes, '--vendor='.$vendor, '--no-interaction'], $backend);
+            self::run([PHP_BINARY, 'bin/console', 'symsvel:make:module', $name, '--workspace='.$workspace, '--scopes='.$scopes, '--vendor='.$vendor, '--no-interaction'], $backend);
             return 0;
         }
 
