@@ -123,12 +123,31 @@ HELP;
                     throw new \RuntimeException('Tooling development checkout missing Composer transaction launcher.');
                 }
             }
+            if ($dev) {
+                self::configureCrashTestDatabase($backend);
+            }
             self::run([PHP_BINARY, 'bin/console', 'symsvel:install', '--components='.$components], $backend);
         } catch (\Throwable $e) {
             throw new \RuntimeException('Création partielle : '.$e->getMessage().'. Projet conservé dans '.$backend);
         }
         echo "[symsvel] Projet créé : ".$backend.PHP_EOL;
         return 0;
+    }
+
+    private static function configureCrashTestDatabase(string $backend): void
+    {
+        // Temporary crash-test defaults. The future web setup owns real deployments.
+        $target = $backend.'/.env.local';
+        if (file_exists($target) || is_link($target)) {
+            echo "[symsvel] .env.local existant conservé.\n";
+            return;
+        }
+        $contents = "DATABASE_URL=\"postgresql://comnstay@127.0.0.1:5432/symsvel_ct?charset=utf8\"\n";
+        if (file_put_contents($target, $contents, LOCK_EX) === false) {
+            throw new \RuntimeException('Impossible de configurer la BDD du crash-test.');
+        }
+        chmod($target, 0600);
+        echo "[symsvel] Configuration PostgreSQL CT créée dans .env.local.\n";
     }
 
     private static function composer(string $command, array $args): int
