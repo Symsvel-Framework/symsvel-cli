@@ -147,7 +147,11 @@ HELP;
         if (file_put_contents($target, $contents, LOCK_EX) === false) {
             throw new \RuntimeException('Impossible de configurer la BDD du crash-test.');
         }
-        chmod($target, 0600);
+        // Crash-test only: this URL has no password and Apache runs as a separate user.
+        // Do not apply this mode to real deployments containing credentials.
+        if (!chmod($target, 0644)) {
+            throw new \RuntimeException('Impossible de rendre .env.local lisible par le serveur HTTP du crash-test.');
+        }
         echo "[symsvel] Configuration PostgreSQL CT créée dans .env.local.\n";
     }
 
