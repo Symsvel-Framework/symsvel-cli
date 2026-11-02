@@ -179,14 +179,20 @@ HELP;
             }
         }
 
+        // Framework workspaces own their generator, even when a backend is present.
+        // A backend in the workspace must not redirect module creation to Symfony.
+        $makerSource = $workspace.'/framework/tools/src/Module/ModuleMaker.php';
+        if (is_file($makerSource)) {
+            require_once $makerSource;
+            $path = (new \SymSvel\Tooling\Module\ModuleMaker())->create($workspace, $name, $vendor, $scopes);
+            echo '[symsvel] Module créé : '.$path.PHP_EOL;
+            return 0;
+        }
+
         // An explicit workspace may point to a different project than the current directory.
         if ($workspaceOption !== null) {
             $selectedBackend = self::findBackend($workspace);
-            if ($selectedBackend !== null && dirname($selectedBackend) === $workspace) {
-                $backend = $selectedBackend;
-            } else {
-                $backend = null;
-            }
+            $backend = $selectedBackend !== null && dirname($selectedBackend) === $workspace ? $selectedBackend : null;
         }
 
         if ($backend !== null) {
@@ -195,14 +201,7 @@ HELP;
             return 0;
         }
 
-        $makerSource = $workspace.'/framework/tools/src/Module/ModuleMaker.php';
-        if (!is_file($makerSource)) {
-            throw new \RuntimeException('ModuleMaker du framework introuvable : '.$makerSource);
-        }
-        require_once $makerSource;
-        $path = (new \SymSvel\Tooling\Module\ModuleMaker())->create($workspace, $name, $vendor, $scopes);
-        echo '[symsvel] Module créé : '.$path.PHP_EOL;
-        return 0;
+        throw new \RuntimeException('Aucun générateur de module disponible dans ce workspace.');
     }
 
     private static function findFrameworkWorkspace(string $directory): ?string
