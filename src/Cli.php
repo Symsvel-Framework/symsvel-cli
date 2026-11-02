@@ -15,6 +15,7 @@ final class Cli
                 '--version', '-V', 'version' => self::version(),
                 'doctor' => self::doctor($args),
                 'create-project' => self::createProject($args),
+                'make:module' => self::makeModule($args),
                 'require', 'update', 'remove' => self::composer($command, $args),
                 default => throw new \RuntimeException("Commande inconnue : $command"),
             };
@@ -32,6 +33,7 @@ SymSvel CLI (development)
 Usage:
   symsvel doctor
   symsvel create-project --components=all|bo|app|front [--directory=backend] [--dev]
+  symsvel make:module <name> [--scopes=back,bo,app,front] [--vendor=symsvel-framework] [--workspace=path]
   symsvel require <package> [constraint]
   symsvel update [package]
   symsvel remove <package>
@@ -133,6 +135,81 @@ HELP;
         }
         echo "[symsvel] Projet créé : ".$backend.PHP_EOL;
         return 0;
+    }
+
+    private static function makeModule(array $args): int
+    {
+        $name = null;
+        $scopes = 'back';
+        $vendor = 'symsvel-framework';
+        $workspaceOption = null;
+        foreach ($args as $arg) {
+            if (str_starts_with($arg, '--scopes=')) {
+                $scopes = substr($arg, strlen('--scopes='));
+            } elseif (str_starts_with($arg, '--vendor=')) {
+                $vendor = substr($arg, strlen('--vendor='));
+            } elseif (str_starts_with($arg, '--workspace=')) {
+                $workspaceOption = substr($arg, strlen('--workspace='));
+            } elseif ($name === null && !str_starts_with($arg, '-')) {
+                $name = $arg;
+            } else {
+                throw new \RuntimeException('Argument inconnu : '.$arg);
+            }
+        }
+        if ($name === null) {
+            throw new \RuntimeException('Nom requis : symsvel make:module <name>.');
+        }
+        if ($workspaceOption !== null && $workspaceOption === '') {
+            throw new \RuntimeException('Valeur --workspace vide.');
+        }
+
+        $backend = self::findBackend(getcwd());
+        if ($workspaceOption !== null) {
+            $workspace = realpath($workspaceOption);
+            if ($workspace === false || !is_dir($workspace)) {
+                throw new \RuntimeException('Workspace introuvable : '.$workspaceOption);
+            }
+        } elseif ($backend !== null) {
+            $workspace = dirname($backend);
+        } else {
+            // Local framework checkout: CLI invoked from workspace or a nested directory.
+            $workspace = self::findFrameworkWorkspace(getcwd());
+            if ($workspace === null) {
+                throw new \RuntimeException('Contexte SymSvel introuvable. Utilisez --workspace.');
+            }
+        }
+
+        if ($backend !== null) {
+            // Always delegate to the Tooling generator installed with the Symfony backend.
+            $console = ['php' => PHP_BINARY, 'script' => 'bin/console'];
+            self::run([$console['php'], $console['script'], 'symsvel:make:module', $name, '--workspace='.$workspace, '--scopes='.$scopes, '--vendor='.$vendor, '--no-interaction'], $backend);
+            return 0;
+        }
+
+        $makerSource = $workspace.'/framework/tools/src/Module/ModuleMaker.php';
+        if (!is_file($makerSource)) {
+            throw new \RuntimeException('ModuleMaker du framework introuvable : '.$makerSource);
+        }
+        require_once $makerSource;
+        $path = (new \SymSvel\Tooling\Module\ModuleMaker())->create($workspace, $name, $vendor, $scopes);
+        echo '[symsvel] Module créé : '.$path.PHP_EOL;
+        return 0;
+    }
+
+    private static function findFrameworkWorkspace(string $directory): ?string
+    {
+        $current = realpath($directory);
+        while ($current !== false) {
+            if (is_file($current.'/framework/tools/src/Module/ModuleMaker.php')) {
+                return $current;
+            }
+            $parent = dirname($current);
+            if ($parent === $current) {
+                break;
+            }
+            $current = $parent;
+        }
+        return null;
     }
 
     private static function configureCrashTestDatabase(string $backend): void
