@@ -125,7 +125,7 @@ HELP;
             }
             if ($dev) {
                 self::configureCrashTestDatabase($backend);
-                self::ensureCrashTestDatabase();
+                self::ensureCrashTestDatabase($backend);
             }
             self::run([PHP_BINARY, 'bin/console', 'symsvel:install', '--components='.$components], $backend);
         } catch (\Throwable $e) {
@@ -151,8 +151,13 @@ HELP;
         echo "[symsvel] Configuration PostgreSQL CT créée dans .env.local.\n";
     }
 
-    private static function ensureCrashTestDatabase(): void
+    private static function ensureCrashTestDatabase(string $backend): void
     {
+        $configured = trim((string) file_get_contents($backend.'/.env.local'));
+        if ($configured !== 'DATABASE_URL="postgresql://comnstay@127.0.0.1:5432/symsvel_ct?charset=utf8"') {
+            echo "[symsvel] Configuration BDD personnalisée conservée ; création CT ignorée.\n";
+            return;
+        }
         if (!self::available('psql') || !self::available('createdb')) {
             throw new \RuntimeException('PostgreSQL CT : outils psql et createdb requis.');
         }
