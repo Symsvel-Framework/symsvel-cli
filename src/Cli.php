@@ -125,6 +125,7 @@ HELP;
             }
             if ($dev) {
                 self::configureCrashTestDatabase($backend);
+                self::ensureCrashTestDatabase();
             }
             self::run([PHP_BINARY, 'bin/console', 'symsvel:install', '--components='.$components], $backend);
         } catch (\Throwable $e) {
@@ -148,6 +149,40 @@ HELP;
         }
         chmod($target, 0600);
         echo "[symsvel] Configuration PostgreSQL CT créée dans .env.local.\n";
+    }
+
+    private static function ensureCrashTestDatabase(): void
+    {
+        if (!self::available('psql') || !self::available('createdb')) {
+            throw new \RuntimeException('PostgreSQL CT : outils psql et createdb requis.');
+        }
+        $connection = ['--host=127.0.0.1', '--port=5432', '--username=comnstay'];
+        $query = [
+            'psql', ...$connection, '--dbname=postgres', '--no-psqlrc',
+            '--tuples-only', '--no-align', '--set=ON_ERROR_STOP=1',
+            '--command=SELECT 1 FROM pg_database WHERE datname = '. "'symsvel_ct'",
+        ];
+        $process = proc_open($query, [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+        if (!is_resource($process)) {
+            throw new \RuntimeException('PostgreSQL CT : connexion impossible.');
+        }
+        fclose($pipes[0]);
+        $result = trim((string) stream_get_contents($pipes[1]));
+        fclose($pipes[1]);
+        $errors = trim((string) stream_get_contents($pipes[2]));
+        fclose($pipes[2]);
+        if (proc_close($process) !== 0) {
+            throw new \RuntimeException('PostgreSQL CT inaccessible : '.$errors);
+        }
+        if ($result === '1') {
+            echo "[symsvel] Base symsvel_ct déjà présente, conservée.\n";
+            return;
+        }
+        if ($result !== '') {
+            throw new \RuntimeException('PostgreSQL CT : résultat de vérification inattendu.');
+        }
+        self::run(['createdb', ...$connection, '--maintenance-db=postgres', 'symsvel_ct'], getcwd());
+        echo "[symsvel] Base PostgreSQL symsvel_ct créée.\n";
     }
 
     private static function composer(string $command, array $args): int
