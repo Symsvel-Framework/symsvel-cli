@@ -33,3 +33,24 @@ Les opérations de packages délèguent au lanceur transactionnel **déjà fourn
 **Limite actuelle :** Composer exécute les scripts et plugins, dont Flex et la synchronisation des modules. L'orchestration transactionnelle des migrations Doctrine et de la restauration de la base reste à finaliser avant les crash-tests complets.
 
 La CLI Symfony n'est pas nécessaire. Les commandes Composer et Symfony natives restent disponibles pour les crash-tests du framework.
+
+## Créer un module
+
+Le ModuleMaker est implémenté exclusivement dans `symsvel-framework/tooling`.
+La CLI autonome lui délègue la génération, sans maintenir de deuxième générateur.
+
+Depuis la racine du framework SymSvel (ou un sous-dossier) :
+
+```bash
+symsvel make:module documents --scopes=back,front
+```
+
+Depuis la racine d'un projet SymSvel (ou son dossier `backend/`) :
+
+```bash
+symsvel make:module catalogue --vendor=acme --scopes=bo,app
+```
+
+Le module est créé dans `<workspace>/modules/<nom>`. Le scope `back` est toujours présent ; les profils historiques `bo`, `app`, `front`, `all` restent acceptés. La commande accepte `--workspace=<chemin>` pour choisir explicitement la destination.
+
+La commande projet nécessite le Tooling installé dans le backend. La commande framework utilise le Maker de `framework/tools/src/Module/ModuleMaker.php` ; aucun backend Symfony n'est nécessaire dans ce cas.
