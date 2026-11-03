@@ -127,11 +127,39 @@ HELP;
                 }
             }
             self::run([PHP_BINARY, 'bin/console', 'symsvel:install', '--components='.$components], $backend);
+            self::installNativeModules($backend, $dev);
         } catch (\Throwable $e) {
             throw new \RuntimeException('Création partielle : '.$e->getMessage().'. Projet conservé dans '.$backend);
         }
         echo "[symsvel] Projet créé : ".$backend.PHP_EOL;
         return 0;
+    }
+
+    /**
+     * Native modules are declared by the skeleton, never hard-coded in the CLI.
+     * Composer/Flex installs each package; migrations wait for the Setup Wizard.
+     */
+    private static function installNativeModules(string $backend, bool $dev): void
+    {
+        $composer = json_decode((string) file_get_contents($backend.'/composer.json'), true, 512, JSON_THROW_ON_ERROR);
+        $modules = $composer['extra']['symsvel']['native-modules'] ?? [];
+        if (!is_array($modules) || !array_is_list($modules)) {
+            throw new \RuntimeException('Configuration des modules natifs invalide.');
+        }
+        foreach ($modules as $package) {
+            if (!is_string($package) || !preg_match('~^symsvel-framework/module-[a-z][a-z0-9-]*$~D', $package)) {
+                throw new \RuntimeException('Module natif invalide dans composer.json.');
+            }
+            $launcher = $backend.'/scripts/symsvel-composer-transaction.php';
+            if (!is_file($launcher)) {
+                throw new \RuntimeException('Lanceur transactionnel introuvable pour les modules natifs.');
+            }
+            $args = [PHP_BINARY, $launcher, 'require', $package, '--bootstrap'];
+            if ($dev) {
+                $args[] = '--dev';
+            }
+            self::run($args, $backend);
+        }
     }
 
     private static function makeModule(array $args): int
