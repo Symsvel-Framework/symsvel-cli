@@ -102,6 +102,7 @@ PHP);
     // Validate native manifest before invoking Composer.
     $manifest = $backend.'/config/symsvel-native-modules.json';
     mkdir(dirname($manifest), 0775, true);
+    require_once dirname(__DIR__).'/src/Cli.php';
     $installNative = new ReflectionMethod(\SymSvelCli\Cli::class, 'installNativeModules');
     foreach ([
         [['schema' => 99, 'modules' => []], 'Version du manifeste'],
