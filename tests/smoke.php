@@ -99,6 +99,24 @@ PHP);
         '--no-interaction',
     ], 'Delegated Symfony command arguments mismatch');
 
+    // Validate native manifest before invoking Composer.
+    $manifest = $backend.'/config/symsvel-native-modules.json';
+    mkdir(dirname($manifest), 0775, true);
+    $installNative = new ReflectionMethod(\SymSvelCli\Cli::class, 'installNativeModules');
+    foreach ([
+        [['schema' => 99, 'modules' => []], 'Version du manifeste'],
+        [['schema' => 1, 'modules' => ['../../invalid']], 'Module natif invalide'],
+    ] as [$payload, $expectedError]) {
+        file_put_contents($manifest, json_encode($payload, JSON_THROW_ON_ERROR));
+        try {
+            $installNative->invoke(null, $backend, false);
+            throw new RuntimeException('Invalid native manifest accepted');
+        } catch (RuntimeException $error) {
+            expect(str_contains($error->getMessage(), $expectedError), 'Native manifest validation failed');
+        }
+    }
+    unlink($manifest);
+
     // Component updates must reach Tooling, never Composer's package transaction.
     [$status, , $error] = executeCli(['update', 'app'], $project);
     expect($status === 0, 'Component update delegation failed: '.$error);
