@@ -16,7 +16,8 @@ final class Cli
                 'doctor' => self::doctor($args),
                 'create-project' => self::createProject($args),
                 'make:module' => self::makeModule($args),
-                'require', 'update', 'remove' => self::composer($command, $args),
+                'update' => self::update($args),
+                'require', 'remove' => self::composer($command, $args),
                 default => throw new \RuntimeException("Commande inconnue : $command"),
             };
         } catch (\Throwable $e) {
@@ -35,7 +36,7 @@ Usage:
   symsvel create-project --components=all|bo|app|front [--directory=backend] [--dev]
   symsvel make:module <name> [--scopes=back,bo,app,front] [--vendor=symsvel-framework] [--workspace=path]
   symsvel require <package> [constraint]
-  symsvel update [package]
+  symsvel update [bo|app|front|package]
   symsvel remove <package>
   symsvel --version
 
@@ -277,6 +278,24 @@ HELP;
         }
         self::run(['createdb', ...$connection, '--maintenance-db=postgres', 'symsvel_ct'], getcwd());
         echo "[symsvel] Base PostgreSQL symsvel_ct créée.\n";
+    }
+
+    private static function update(array $args): int
+    {
+        // Component names are reserved CLI targets, not Composer packages.
+        // Delegate lifecycle orchestration to Tooling, which owns installation,
+        // module synchronization, builds and rollback.
+        if (count($args) === 1 && in_array($args[0], ['bo', 'app', 'front'], true)) {
+            self::assertRequirements(true);
+            $backend = self::findBackend(getcwd());
+            if ($backend === null) {
+                throw new \RuntimeException('Projet SymSvel introuvable (composer.json + bin/console).');
+            }
+            self::run([PHP_BINARY, 'bin/console', 'symsvel:component:update', $args[0], '--no-interaction'], $backend);
+            return 0;
+        }
+
+        return self::composer('update', $args);
     }
 
     private static function composer(string $command, array $args): int
