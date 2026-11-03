@@ -116,6 +116,28 @@ PHP);
             expect(str_contains($error->getMessage(), $expectedError), 'Native manifest validation failed');
         }
     }
+    // Confirm that a valid manifest delegates each native module to the
+    // transaction launcher with the bootstrap flag, without running Composer.
+    mkdir($backend.'/scripts', 0775, true);
+    $launcher = $backend.'/scripts/symsvel-composer-transaction.php';
+    file_put_contents($launcher, <<<'PHP'
+<?php
+file_put_contents(__DIR__.'/../native-invocation.json', json_encode(array_slice($argv, 1), JSON_THROW_ON_ERROR));
+PHP);
+    file_put_contents($manifest, json_encode([
+        'schema' => 1,
+        'modules' => ['symsvel-framework/module-roles'],
+    ], JSON_THROW_ON_ERROR));
+    $installNative->invoke(null, $backend, false);
+    $invocation = json_decode((string) file_get_contents($backend.'/native-invocation.json'), true, 512, JSON_THROW_ON_ERROR);
+    expect($invocation === ['require', 'symsvel-framework/module-roles', '--bootstrap'], 'Native bootstrap invocation mismatch');
+    unlink($backend.'/native-invocation.json');
+    $installNative->invoke(null, $backend, true);
+    $invocation = json_decode((string) file_get_contents($backend.'/native-invocation.json'), true, 512, JSON_THROW_ON_ERROR);
+    expect($invocation === ['require', 'symsvel-framework/module-roles', '--bootstrap', '--dev'], 'Native dev bootstrap invocation mismatch');
+    unlink($backend.'/native-invocation.json');
+    unlink($launcher);
+    rmdir($backend.'/scripts');
     unlink($manifest);
 
     // Component updates must reach Tooling, never Composer's package transaction.
