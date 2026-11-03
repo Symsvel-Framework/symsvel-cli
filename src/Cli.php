@@ -126,10 +126,6 @@ HELP;
                     throw new \RuntimeException('Tooling development checkout missing Composer transaction launcher.');
                 }
             }
-            if ($dev) {
-                self::configureCrashTestDatabase($backend);
-                self::ensureCrashTestDatabase($backend);
-            }
             self::run([PHP_BINARY, 'bin/console', 'symsvel:install', '--components='.$components], $backend);
         } catch (\Throwable $e) {
             throw new \RuntimeException('Création partielle : '.$e->getMessage().'. Projet conservé dans '.$backend);
@@ -219,65 +215,6 @@ HELP;
             $current = $parent;
         }
         return null;
-    }
-
-    private static function configureCrashTestDatabase(string $backend): void
-    {
-        // Temporary crash-test defaults. The future web setup owns real deployments.
-        $target = $backend.'/.env.local';
-        if (file_exists($target) || is_link($target)) {
-            echo "[symsvel] .env.local existant conservé.\n";
-            return;
-        }
-        $contents = "DATABASE_URL=\"postgresql://comnstay@127.0.0.1:5432/symsvel_ct?charset=utf8\"\n";
-        if (file_put_contents($target, $contents, LOCK_EX) === false) {
-            throw new \RuntimeException('Impossible de configurer la BDD du crash-test.');
-        }
-        // Crash-test only: this URL has no password and Apache runs as a separate user.
-        // Do not apply this mode to real deployments containing credentials.
-        if (!chmod($target, 0644)) {
-            throw new \RuntimeException('Impossible de rendre .env.local lisible par le serveur HTTP du crash-test.');
-        }
-        echo "[symsvel] Configuration PostgreSQL CT créée dans .env.local.\n";
-    }
-
-    private static function ensureCrashTestDatabase(string $backend): void
-    {
-        $configured = trim((string) file_get_contents($backend.'/.env.local'));
-        if ($configured !== 'DATABASE_URL="postgresql://comnstay@127.0.0.1:5432/symsvel_ct?charset=utf8"') {
-            echo "[symsvel] Configuration BDD personnalisée conservée ; création CT ignorée.\n";
-            return;
-        }
-        if (!self::available('psql') || !self::available('createdb')) {
-            throw new \RuntimeException('PostgreSQL CT : outils psql et createdb requis.');
-        }
-        $connection = ['--host=127.0.0.1', '--port=5432', '--username=comnstay'];
-        $query = [
-            'psql', ...$connection, '--dbname=postgres', '--no-psqlrc',
-            '--tuples-only', '--no-align', '--set=ON_ERROR_STOP=1',
-            '--command=SELECT 1 FROM pg_database WHERE datname = '. "'symsvel_ct'",
-        ];
-        $process = proc_open($query, [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
-        if (!is_resource($process)) {
-            throw new \RuntimeException('PostgreSQL CT : connexion impossible.');
-        }
-        fclose($pipes[0]);
-        $result = trim((string) stream_get_contents($pipes[1]));
-        fclose($pipes[1]);
-        $errors = trim((string) stream_get_contents($pipes[2]));
-        fclose($pipes[2]);
-        if (proc_close($process) !== 0) {
-            throw new \RuntimeException('PostgreSQL CT inaccessible : '.$errors);
-        }
-        if ($result === '1') {
-            echo "[symsvel] Base symsvel_ct déjà présente, conservée.\n";
-            return;
-        }
-        if ($result !== '') {
-            throw new \RuntimeException('PostgreSQL CT : résultat de vérification inattendu.');
-        }
-        self::run(['createdb', ...$connection, '--maintenance-db=postgres', 'symsvel_ct'], getcwd());
-        echo "[symsvel] Base PostgreSQL symsvel_ct créée.\n";
     }
 
     private static function update(array $args): int
