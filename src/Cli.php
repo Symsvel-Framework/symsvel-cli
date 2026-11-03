@@ -15,6 +15,7 @@ final class Cli
                 '--version', '-V', 'version' => self::version(),
                 'doctor' => self::doctor($args),
                 'create-project' => self::createProject($args),
+                'setup:finalize' => self::finalizeSetup($args),
                 'make:module' => self::makeModule($args),
                 'update' => self::update($args),
                 'require', 'remove' => self::composer($command, $args),
@@ -33,6 +34,7 @@ SymSvel CLI (development)
 
 Usage:
   symsvel doctor
+  symsvel setup:finalize
   symsvel create-project --components=all|bo|app|front [--directory=backend] [--dev]
   symsvel make:module <name> [--scopes=back,bo,app,front] [--vendor=symsvel-framework] [--workspace=path]
   symsvel require <package> [constraint] [--bootstrap]
@@ -167,6 +169,19 @@ HELP;
             }
             self::run($args, $backend);
         }
+    }
+
+    private static function finalizeSetup(array $args): int
+    {
+        if ($args !== []) {
+            throw new \RuntimeException('setup:finalize ne prend pas d’arguments.');
+        }
+        $backend = self::findBackend(getcwd());
+        if ($backend === null) {
+            throw new \RuntimeException('Exécutez setup:finalize depuis un projet SymSvel.');
+        }
+        self::run([PHP_BINARY, 'bin/console', 'symsvel:setup:finalize', '--no-interaction'], $backend);
+        return 0;
     }
 
     private static function makeModule(array $args): int
