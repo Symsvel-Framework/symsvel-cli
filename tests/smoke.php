@@ -44,6 +44,7 @@ mkdir($temporary, 0775, true);
 try {
     [$status, $out] = executeCli(['--help'], $temporary);
     expect($status === 0 && str_contains($out, 'make:module'), 'Help must advertise make:module');
+    expect(str_contains($out, '[--bootstrap]'), 'Help must advertise bootstrap require mode');
 
     [$status, , $error] = executeCli(['make:module'], $temporary);
     expect($status !== 0 && str_contains($error, 'Nom requis'), 'Missing module name must fail');
