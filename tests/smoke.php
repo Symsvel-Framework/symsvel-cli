@@ -99,6 +99,13 @@ PHP);
         '--no-interaction',
     ], 'Delegated Symfony command arguments mismatch');
 
+    [$status, , $error] = executeCli(['setup:finalize', '--unexpected'], $project);
+    expect($status !== 0 && str_contains($error, 'ne prend pas'), 'Setup finalization must reject unexpected arguments');
+    [$status, , $error] = executeCli(['setup:finalize'], $project);
+    expect($status === 0, 'Setup finalization delegation failed: '.$error);
+    $delegated = json_decode((string) file_get_contents($backend.'/delegation.json'), true, 512, JSON_THROW_ON_ERROR);
+    expect($delegated === ['symsvel:setup:finalize', '--no-interaction'], 'Setup finalization delegation mismatch');
+
     // Validate native manifest before invoking Composer.
     $manifest = $backend.'/config/symsvel-native-modules.json';
     mkdir(dirname($manifest), 0775, true);
