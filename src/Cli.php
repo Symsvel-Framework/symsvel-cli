@@ -35,7 +35,7 @@ Usage:
   symsvel doctor
   symsvel create-project --components=all|bo|app|front [--directory=backend] [--dev]
   symsvel make:module <name> [--scopes=back,bo,app,front] [--vendor=symsvel-framework] [--workspace=path]
-  symsvel require <package> [constraint]
+  symsvel require <package> [constraint] [--bootstrap]
   symsvel update [bo|app|front|package]
   symsvel remove <package>
   symsvel --version
@@ -248,6 +248,9 @@ HELP;
         }
         if ($command !== 'update' && $args === []) {
             throw new \RuntimeException($command.' nécessite un nom de package.');
+        }
+        if (in_array('--bootstrap', $args, true) && $command !== 'require') {
+            throw new \RuntimeException('--bootstrap est réservé à symsvel require.');
         }
         self::run(array_merge([PHP_BINARY, $launcher, $command], $args), $backend);
         return 0;
