@@ -44,6 +44,7 @@ mkdir($temporary, 0775, true);
 try {
     [$status, $out] = executeCli(['--help'], $temporary);
     expect($status === 0 && str_contains($out, 'make:module'), 'Help must advertise make:module');
+    expect(str_contains($out, '[--bootstrap]'), 'Help must advertise bootstrap require mode');
 
     [$status, , $error] = executeCli(['make:module'], $temporary);
     expect($status !== 0 && str_contains($error, 'Nom requis'), 'Missing module name must fail');
@@ -97,6 +98,54 @@ PHP);
         '--vendor=acme',
         '--no-interaction',
     ], 'Delegated Symfony command arguments mismatch');
+
+    [$status, , $error] = executeCli(['setup:finalize', '--unexpected'], $project);
+    expect($status !== 0 && str_contains($error, 'ne prend pas'), 'Setup finalization must reject unexpected arguments');
+    [$status, , $error] = executeCli(['setup:finalize'], $project);
+    expect($status === 0, 'Setup finalization delegation failed: '.$error);
+    $delegated = json_decode((string) file_get_contents($backend.'/delegation.json'), true, 512, JSON_THROW_ON_ERROR);
+    expect($delegated === ['symsvel:setup:finalize', '--no-interaction'], 'Setup finalization delegation mismatch');
+
+    // Validate native manifest before invoking Composer.
+    $manifest = $backend.'/config/symsvel-native-modules.json';
+    mkdir(dirname($manifest), 0775, true);
+    require_once dirname(__DIR__).'/src/Cli.php';
+    $installNative = new ReflectionMethod(\SymSvelCli\Cli::class, 'installNativeModules');
+    foreach ([
+        [['schema' => 99, 'modules' => []], 'Version du manifeste'],
+        [['schema' => 1, 'modules' => ['../../invalid']], 'Module natif invalide'],
+    ] as [$payload, $expectedError]) {
+        file_put_contents($manifest, json_encode($payload, JSON_THROW_ON_ERROR));
+        try {
+            $installNative->invoke(null, $backend, false);
+            throw new RuntimeException('Invalid native manifest accepted');
+        } catch (RuntimeException $error) {
+            expect(str_contains($error->getMessage(), $expectedError), 'Native manifest validation failed');
+        }
+    }
+    // Confirm that a valid manifest delegates each native module to the
+    // transaction launcher with the bootstrap flag, without running Composer.
+    mkdir($backend.'/scripts', 0775, true);
+    $launcher = $backend.'/scripts/symsvel-composer-transaction.php';
+    file_put_contents($launcher, <<<'PHP'
+<?php
+file_put_contents(__DIR__.'/../native-invocation.json', json_encode(array_slice($argv, 1), JSON_THROW_ON_ERROR));
+PHP);
+    file_put_contents($manifest, json_encode([
+        'schema' => 1,
+        'modules' => ['symsvel-framework/module-roles'],
+    ], JSON_THROW_ON_ERROR));
+    $installNative->invoke(null, $backend, false);
+    $invocation = json_decode((string) file_get_contents($backend.'/native-invocation.json'), true, 512, JSON_THROW_ON_ERROR);
+    expect($invocation === ['require', 'symsvel-framework/module-roles', '--bootstrap'], 'Native bootstrap invocation mismatch');
+    unlink($backend.'/native-invocation.json');
+    $installNative->invoke(null, $backend, true);
+    $invocation = json_decode((string) file_get_contents($backend.'/native-invocation.json'), true, 512, JSON_THROW_ON_ERROR);
+    expect($invocation === ['require', 'symsvel-framework/module-roles', '--bootstrap', '--dev'], 'Native dev bootstrap invocation mismatch');
+    unlink($backend.'/native-invocation.json');
+    unlink($launcher);
+    rmdir($backend.'/scripts');
+    unlink($manifest);
 
     // Component updates must reach Tooling, never Composer's package transaction.
     [$status, , $error] = executeCli(['update', 'app'], $project);
