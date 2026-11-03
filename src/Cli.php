@@ -141,14 +141,21 @@ HELP;
      */
     private static function installNativeModules(string $backend, bool $dev): void
     {
-        $composer = json_decode((string) file_get_contents($backend.'/composer.json'), true, 512, JSON_THROW_ON_ERROR);
-        $modules = $composer['extra']['symsvel']['native-modules'] ?? [];
+        $manifest = $backend.'/config/symsvel-native-modules.json';
+        if (!is_file($manifest)) {
+            return;
+        }
+        $config = json_decode((string) file_get_contents($manifest), true, 512, JSON_THROW_ON_ERROR);
+        if (($config['schema'] ?? null) !== 1) {
+            throw new \RuntimeException('Version du manifeste des modules natifs invalide.');
+        }
+        $modules = $config['modules'] ?? null;
         if (!is_array($modules) || !array_is_list($modules)) {
             throw new \RuntimeException('Configuration des modules natifs invalide.');
         }
         foreach ($modules as $package) {
             if (!is_string($package) || !preg_match('~^symsvel-framework/module-[a-z][a-z0-9-]*$~D', $package)) {
-                throw new \RuntimeException('Module natif invalide dans composer.json.');
+                throw new \RuntimeException('Module natif invalide dans le manifeste.');
             }
             $launcher = $backend.'/scripts/symsvel-composer-transaction.php';
             if (!is_file($launcher)) {
