@@ -74,7 +74,7 @@ HELP;
         foreach ($requirements as $name => $ok) {
             $label = $ok ? '[OK]' : '[KO]';
             if ($colors) {
-                $label = ($ok ? "\\033[32m" : "\\033[31m").$label."\\033[0m";
+                $label = ($ok ? "\033[32m" : "\033[31m").$label."\033[0m";
             }
             echo $label.' '.$name.PHP_EOL;
         }
