@@ -165,6 +165,17 @@ HELP;
             }
         }
         $modules = array_values(array_unique($modules));
+        if ($dev) {
+            // Satis can expose only tagged releases. In development mode, register
+            // the module VCS repositories so Composer can resolve dev-main.
+            foreach ($modules as $package) {
+                if (!is_string($package) || !preg_match('~^symsvel-framework/module-[a-z][a-z0-9-]*$~D', $package)) {
+                    throw new \RuntimeException('Module natif invalide dans le manifeste.');
+                }
+                $moduleName = substr($package, strlen('symsvel-framework/'));
+                self::run(['composer', 'config', 'repositories.'.$moduleName.'-dev', 'vcs', 'https://github.com/Symsvel-Framework/symsvel-'.$moduleName.'.git'], $backend);
+            }
+        }
         foreach ($modules as $package) {
             if (!is_string($package) || !preg_match('~^symsvel-framework/module-[a-z][a-z0-9-]*$~D', $package)) {
                 throw new \RuntimeException('Module natif invalide dans le manifeste.');
