@@ -131,7 +131,20 @@ HELP;
                 }
             }
             self::run([PHP_BINARY, 'bin/console', 'symsvel:install', '--components='.$components], $backend);
-            self::installNativeModules($backend, $dev, $components);
+            // Composer post-update hooks must synchronize module metadata on every
+            // transaction, but Svelte builds are postponed until the last module.
+            $previousDefer = getenv('SYMSVEL_DEFER_BUILDS');
+            putenv('SYMSVEL_DEFER_BUILDS=1');
+            try {
+                self::installNativeModules($backend, $dev, $components);
+            } finally {
+                if ($previousDefer === false) {
+                    putenv('SYMSVEL_DEFER_BUILDS');
+                } else {
+                    putenv('SYMSVEL_DEFER_BUILDS='.$previousDefer);
+                }
+            }
+            self::run([PHP_BINARY, 'scripts/symsvel-module-sync.php'], $backend);
         } catch (\Throwable $e) {
             throw new \RuntimeException('Création partielle : '.$e->getMessage().'. Projet conservé dans '.$backend);
         }
