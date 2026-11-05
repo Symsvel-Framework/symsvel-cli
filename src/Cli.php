@@ -130,12 +130,11 @@ HELP;
                     throw new \RuntimeException('Tooling development checkout missing Composer transaction launcher.');
                 }
             }
-            self::run([PHP_BINARY, 'bin/console', 'symsvel:install', '--components='.$components], $backend);
-            // Composer post-update hooks must synchronize module metadata on every
-            // transaction, but Svelte builds are postponed until the last module.
+            // Defer builds from the first component clone through native module installation.
             $previousDefer = getenv('SYMSVEL_DEFER_BUILDS');
             putenv('SYMSVEL_DEFER_BUILDS=1');
             try {
+                self::run([PHP_BINARY, 'bin/console', 'symsvel:install', '--components='.$components], $backend);
                 self::installNativeModules($backend, $dev, $components);
             } finally {
                 if ($previousDefer === false) {
