@@ -111,6 +111,24 @@ PHP);
     mkdir(dirname($manifest), 0775, true);
     require_once dirname(__DIR__).'/src/Cli.php';
     $installNative = new ReflectionMethod(\SymSvelCli\Cli::class, 'installNativeModules');
+    // --dev must drop release-only Satis without removing unrelated repositories.
+    $removeSatis = new ReflectionMethod(\\SymSvelCli\\Cli::class, 'removeSatisRepository');
+    file_put_contents($backend.'/composer.json', json_encode([
+        'require' => ['symsvel-framework/core' => '^1.0'],
+        'repositories' => [
+            ['type' => 'composer', 'url' => 'https://packages.xavier-tezza.fr/'],
+            ['type' => 'composer', 'url' => 'https://third-party.example/repository'],
+            ['type' => 'vcs', 'url' => 'https://github.com/Symsvel-Framework/symsvel-core.git'],
+        ],
+    ], JSON_THROW_ON_ERROR));
+    $removeSatis->invoke(null, $backend);
+    $repositories = json_decode((string) file_get_contents($backend.'/composer.json'), true, 512, JSON_THROW_ON_ERROR)['repositories'];
+    expect(count($repositories) === 2, 'Dev repository cleanup must remove only Satis');
+    expect($repositories[0]['url'] === 'https://third-party.example/repository', 'Third-party Composer repository must remain');
+    expect($repositories[1]['type'] === 'vcs', 'GitHub VCS repository must remain');
+    $removeSatis->invoke(null, $backend);
+    expect(count(json_decode((string) file_get_contents($backend.'/composer.json'), true, 512, JSON_THROW_ON_ERROR)['repositories']) === 2, 'Dev repository cleanup must be idempotent');
+
     foreach ([
         [['schema' => 99, 'modules' => []], 'Version du manifeste'],
         [['schema' => 1, 'modules' => ['../../invalid']], 'Module natif invalide'],
