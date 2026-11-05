@@ -15,6 +15,7 @@ final class Cli
                 '--version', '-V', 'version' => self::version(),
                 'doctor' => self::doctor($args),
                 'create-project' => self::createProject($args),
+                'setup' => self::setup($args),
                 'setup:finalize' => self::finalizeSetup($args),
                 'make:module' => self::makeModule($args),
                 'update' => self::update($args),
@@ -34,6 +35,7 @@ SymSvel CLI (development)
 
 Usage:
   symsvel doctor
+  symsvel setup               # Lance le Wizard local sous l'utilisateur CLI
   symsvel setup:finalize
   symsvel create-project --components=all|bo|app|front [--directory=backend] [--dev]
   symsvel make:module <name> [--scopes=back,bo,app,front] [--vendor=symsvel-framework] [--workspace=path]
@@ -190,6 +192,66 @@ HELP;
             }
             self::run($args, $backend);
         }
+    }
+
+    /**
+     * Run the browser wizard under the same OS identity as the installer.
+     * This avoids requiring Apache, Nginx or PHP-FPM to write project files.
+     */
+    private static function setup(array $args): int
+    {
+        if ($args !== []) {
+            throw new \RuntimeException('setup ne prend pas d’arguments.');
+        }
+        $backend = self::findBackend(getcwd());
+        if ($backend === null) {
+            throw new \RuntimeException('Exécutez setup depuis un projet SymSvel.');
+        }
+        $workspace = dirname($backend);
+        $stateFile = $workspace.'/.symsvel/setup.json';
+        if (!is_file($stateFile) || is_link($stateFile)) {
+            throw new \RuntimeException('Setup non initialisé. Exécutez create-project auparavant.');
+        }
+        $state = json_decode((string) file_get_contents($stateFile), true, 512, JSON_THROW_ON_ERROR);
+        if (($state['schema'] ?? null) !== 1 || !in_array($state['status'] ?? null, ['pending', 'running'], true)) {
+            throw new \RuntimeException('Setup déjà terminé ou état invalide.');
+        }
+        $tokenFile = $workspace.'/.symsvel/setup-token';
+        if (!is_file($tokenFile) || is_link($tokenFile)) {
+            throw new \RuntimeException('Jeton de setup introuvable.');
+        }
+        $token = trim((string) file_get_contents($tokenFile));
+        if ($token === '') {
+            throw new \RuntimeException('Jeton de setup vide.');
+        }
+        if (!is_file($backend.'/public/index.php')) {
+            throw new \RuntimeException('Front controller Symfony introuvable.');
+        }
+        $socket = @stream_socket_server('tcp://127.0.0.1:0', $errno, $error);
+        if ($socket === false) {
+            throw new \RuntimeException('Impossible de réserver un port local : '.$error);
+        }
+        $address = stream_socket_get_name($socket, false);
+        fclose($socket);
+        if (!is_string($address) || !preg_match('/:(\\d+)$/D', $address, $matches)) {
+            throw new \RuntimeException('Port local indisponible.');
+        }
+        $port = (int) $matches[1];
+        $url = 'http://127.0.0.1:'.$port.'/setup';
+        echo '[symsvel] Wizard local : '.$url.PHP_EOL;
+        echo '[symsvel] Jeton à saisir dans le formulaire : '.$token.PHP_EOL;
+        echo '[symsvel] Serveur accessible uniquement sur cette machine. Ctrl+C pour arrêter.'.PHP_EOL;
+        $process = proc_open(
+            [PHP_BINARY, '-S', '127.0.0.1:'.$port, '-t', 'public', 'public/index.php'],
+            [0 => STDIN, 1 => STDOUT, 2 => STDERR],
+            $pipes,
+            $backend,
+        );
+        if (!is_resource($process)) {
+            throw new \RuntimeException('Démarrage du serveur local impossible.');
+        }
+        $exitCode = proc_close($process);
+        return $exitCode === 0 || $exitCode === 130 ? 0 : 1;
     }
 
     private static function finalizeSetup(array $args): int
