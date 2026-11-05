@@ -120,6 +120,9 @@ HELP;
         }
         try {
             if ($dev) {
+                // The initial skeleton has already been created. Further Composer
+                // operations must resolve SymSvel from GitHub, not release-only Satis.
+                self::removeSatisRepository($backend);
                 // The skeleton pins stable versions; explicitly resolve the current
                 // development branches before booting Symfony in the dev environment.
                 self::run(['composer', 'config', 'repositories.symsvel-tooling-dev', 'vcs', 'https://github.com/Symsvel-Framework/symsvel-tooling.git'], $backend);
@@ -130,19 +133,66 @@ HELP;
                     throw new \RuntimeException('Tooling development checkout missing Composer transaction launcher.');
                 }
             }
-            self::run([PHP_BINARY, 'bin/console', 'symsvel:install', '--components='.$components], $backend);
-            self::installNativeModules($backend, $dev, $components);
+            // Defer builds from the first component clone through native module installation.
+            $previousDefer = getenv('SYMSVEL_DEFER_BUILDS');
+            putenv('SYMSVEL_DEFER_BUILDS=1');
+            try {
+                self::run([PHP_BINARY, 'bin/console', 'symsvel:install', '--components='.$components], $backend);
+                self::installNativeModules($backend, $dev, $components);
+            } finally {
+                if ($previousDefer === false) {
+                    putenv('SYMSVEL_DEFER_BUILDS');
+                } else {
+                    putenv('SYMSVEL_DEFER_BUILDS='.$previousDefer);
+                }
+            }
+            self::run([PHP_BINARY, 'scripts/symsvel-module-sync.php'], $backend);
         } catch (\Throwable $e) {
             throw new \RuntimeException('Création partielle : '.$e->getMessage().'. Projet conservé dans '.$backend);
         }
         echo "[symsvel] Projet créé : ".$backend.PHP_EOL;
-        return 0;
+        echo "[symsvel] Démarrage du Setup Wizard...".PHP_EOL;
+        $previousDirectory = getcwd();
+        if (!chdir($backend)) {
+            throw new \RuntimeException("Impossible d’ouvrir le backend pour le Setup Wizard.");
+        }
+        try {
+            return self::setup([]);
+        } finally {
+            chdir($previousDirectory);
+        }
     }
 
     /**
      * Native modules are declared by the skeleton, never hard-coded in the CLI.
      * Composer/Flex installs each package; migrations wait for the Setup Wizard.
      */
+    /** Remove only the SymSvel release repository, preserving third-party repositories. */
+    private static function removeSatisRepository(string $backend): void
+    {
+        $path = $backend.'/composer.json';
+        $configuration = json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+        $repositories = $configuration['repositories'] ?? [];
+        if (!is_array($repositories)) {
+            throw new \RuntimeException('Configuration des dépôts Composer invalide.');
+        }
+        foreach ($repositories as $key => $repository) {
+            if (!is_array($repository) || ($repository['type'] ?? null) !== 'composer') {
+                continue;
+            }
+            $url = rtrim((string) ($repository['url'] ?? ''), '/');
+            if ($url === 'https://packages.xavier-tezza.fr') {
+                unset($repositories[$key]);
+            }
+        }
+        $configuration['repositories'] = array_is_list($repositories)
+            ? $repositories : array_values($repositories);
+        $encoded = json_encode($configuration, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        if (file_put_contents($path, $encoded."\n", LOCK_EX) === false) {
+            throw new \RuntimeException('Impossible de mettre à jour les dépôts Composer.');
+        }
+    }
+
     private static function installNativeModules(string $backend, bool $dev, string $components): void
     {
         $manifest = $backend.'/config/symsvel-native-modules.json';
@@ -182,16 +232,16 @@ HELP;
             if (!is_string($package) || !preg_match('~^symsvel-framework/module-[a-z][a-z0-9-]*$~D', $package)) {
                 throw new \RuntimeException('Module natif invalide dans le manifeste.');
             }
-            $launcher = $backend.'/scripts/symsvel-composer-transaction.php';
+        }
+        if ($modules === []) {
+            return;
+        }
+        $launcher = $backend.'/scripts/symsvel-composer-transaction.php';
             if (!is_file($launcher)) {
                 throw new \RuntimeException('Lanceur transactionnel introuvable pour les modules natifs.');
             }
-            $args = [PHP_BINARY, $launcher, 'require', $package, '--bootstrap'];
-            if ($dev) {
-                $args[] = '--dev';
-            }
-            self::run($args, $backend);
-        }
+        $constraints = array_map(static fn (string $package): string => $dev ? $package.':dev-main' : $package, $modules);
+        self::run(array_merge([PHP_BINARY, $launcher, 'require'], $constraints, ['--bootstrap']), $backend);
     }
 
     /**
@@ -250,8 +300,31 @@ HELP;
         if (!is_resource($process)) {
             throw new \RuntimeException('Démarrage du serveur local impossible.');
         }
+        self::openBrowser($url);
         $exitCode = proc_close($process);
         return $exitCode === 0 || $exitCode === 130 ? 0 : 1;
+    }
+
+    /** Best-effort browser launch; the URL remains visible for headless environments. */
+    private static function openBrowser(string $url): void
+    {
+        $command = match (PHP_OS_FAMILY) {
+            'Darwin' => ['open', $url],
+            'Windows' => ['cmd', '/c', 'start', '', $url],
+            default => ['xdg-open', $url],
+        };
+        try {
+            $process = proc_open($command, [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+            if (!is_resource($process)) {
+                return;
+            }
+            foreach ($pipes as $pipe) {
+                fclose($pipe);
+            }
+            proc_close($process);
+        } catch (\Throwable) {
+            // A missing desktop opener must never prevent manual setup.
+        }
     }
 
     private static function finalizeSetup(array $args): int
