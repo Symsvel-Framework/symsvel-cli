@@ -129,7 +129,7 @@ HELP;
                 }
             }
             self::run([PHP_BINARY, 'bin/console', 'symsvel:install', '--components='.$components], $backend);
-            self::installNativeModules($backend, $dev);
+            self::installNativeModules($backend, $dev, $components);
         } catch (\Throwable $e) {
             throw new \RuntimeException('Création partielle : '.$e->getMessage().'. Projet conservé dans '.$backend);
         }
@@ -141,7 +141,7 @@ HELP;
      * Native modules are declared by the skeleton, never hard-coded in the CLI.
      * Composer/Flex installs each package; migrations wait for the Setup Wizard.
      */
-    private static function installNativeModules(string $backend, bool $dev): void
+    private static function installNativeModules(string $backend, bool $dev, string $components): void
     {
         $manifest = $backend.'/config/symsvel-native-modules.json';
         if (!is_file($manifest)) {
@@ -155,6 +155,16 @@ HELP;
         if (!is_array($modules) || !array_is_list($modules)) {
             throw new \RuntimeException('Configuration des modules natifs invalide.');
         }
+        $componentModules = $config['components'] ?? [];
+        if (!is_array($componentModules)) {
+            throw new \RuntimeException('Configuration des modules de composants invalide.');
+        }
+        if (in_array($components, ['all', 'app'], true)) {
+            foreach ($componentModules['app'] ?? [] as $package) {
+                $modules[] = $package;
+            }
+        }
+        $modules = array_values(array_unique($modules));
         foreach ($modules as $package) {
             if (!is_string($package) || !preg_match('~^symsvel-framework/module-[a-z][a-z0-9-]*$~D', $package)) {
                 throw new \RuntimeException('Module natif invalide dans le manifeste.');
