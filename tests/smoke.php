@@ -141,7 +141,16 @@ PHP);
     unlink($backend.'/native-invocation.json');
     $installNative->invoke(null, $backend, true, 'bo');
     $invocation = json_decode((string) file_get_contents($backend.'/native-invocation.json'), true, 512, JSON_THROW_ON_ERROR);
-    expect($invocation === ['require', 'symsvel-framework/module-roles', '--bootstrap', '--dev'], 'Native dev bootstrap invocation mismatch');
+    expect($invocation === ['require', 'symsvel-framework/module-roles:dev-main', '--bootstrap'], 'Native dev bootstrap invocation mismatch');
+    unlink($backend.'/native-invocation.json');
+    // All native modules must be sent in one Composer transaction.
+    file_put_contents($manifest, json_encode([
+        'schema' => 1,
+        'modules' => ['symsvel-framework/module-admins', 'symsvel-framework/module-roles'],
+    ], JSON_THROW_ON_ERROR));
+    $installNative->invoke(null, $backend, true, 'bo');
+    $invocation = json_decode((string) file_get_contents($backend.'/native-invocation.json'), true, 512, JSON_THROW_ON_ERROR);
+    expect($invocation === ['require', 'symsvel-framework/module-admins:dev-main', 'symsvel-framework/module-roles:dev-main', '--bootstrap'], 'Native batch bootstrap invocation mismatch');
     unlink($backend.'/native-invocation.json');
     // App-specific modules must not be installed when App is absent.
     file_put_contents($manifest, json_encode([
