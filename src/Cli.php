@@ -139,7 +139,7 @@ HELP;
         echo "[symsvel] Démarrage du Setup Wizard...".PHP_EOL;
         $previousDirectory = getcwd();
         if (!chdir($backend)) {
-            throw new \\RuntimeException("Impossible d’ouvrir le backend pour le Setup Wizard.");
+            throw new \RuntimeException("Impossible d’ouvrir le backend pour le Setup Wizard.");
         }
         try {
             return self::setup([]);
@@ -281,7 +281,7 @@ HELP;
                 fclose($pipe);
             }
             proc_close($process);
-        } catch (\\Throwable) {
+        } catch (\Throwable) {
             // A missing desktop opener must never prevent manual setup.
         }
     }
