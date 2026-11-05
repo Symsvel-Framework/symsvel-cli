@@ -120,6 +120,9 @@ HELP;
         }
         try {
             if ($dev) {
+                // The initial skeleton has already been created. Further Composer
+                // operations must resolve SymSvel from GitHub, not release-only Satis.
+                self::removeSatisRepository($backend);
                 // The skeleton pins stable versions; explicitly resolve the current
                 // development branches before booting Symfony in the dev environment.
                 self::run(['composer', 'config', 'repositories.symsvel-tooling-dev', 'vcs', 'https://github.com/Symsvel-Framework/symsvel-tooling.git'], $backend);
@@ -164,6 +167,32 @@ HELP;
      * Native modules are declared by the skeleton, never hard-coded in the CLI.
      * Composer/Flex installs each package; migrations wait for the Setup Wizard.
      */
+    /** Remove only the SymSvel release repository, preserving third-party repositories. */
+    private static function removeSatisRepository(string $backend): void
+    {
+        $path = $backend.'/composer.json';
+        $configuration = json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+        $repositories = $configuration['repositories'] ?? [];
+        if (!is_array($repositories)) {
+            throw new \RuntimeException('Configuration des dépôts Composer invalide.');
+        }
+        foreach ($repositories as $key => $repository) {
+            if (!is_array($repository) || ($repository['type'] ?? null) !== 'composer') {
+                continue;
+            }
+            $url = rtrim((string) ($repository['url'] ?? ''), '/');
+            if ($url === 'https://packages.xavier-tezza.fr') {
+                unset($repositories[$key]);
+            }
+        }
+        $configuration['repositories'] = array_is_list($repositories)
+            ? $repositories : array_values($repositories);
+        $encoded = json_encode($configuration, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        if (file_put_contents($path, $encoded."\\n", LOCK_EX) === false) {
+            throw new \RuntimeException('Impossible de mettre à jour les dépôts Composer.');
+        }
+    }
+
     private static function installNativeModules(string $backend, bool $dev, string $components): void
     {
         $manifest = $backend.'/config/symsvel-native-modules.json';
