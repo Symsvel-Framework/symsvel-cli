@@ -117,7 +117,7 @@ PHP);
     ] as [$payload, $expectedError]) {
         file_put_contents($manifest, json_encode($payload, JSON_THROW_ON_ERROR));
         try {
-            $installNative->invoke(null, $backend, false);
+            $installNative->invoke(null, $backend, false, 'bo');
             throw new RuntimeException('Invalid native manifest accepted');
         } catch (RuntimeException $error) {
             expect(str_contains($error->getMessage(), $expectedError), 'Native manifest validation failed');
@@ -135,13 +135,25 @@ PHP);
         'schema' => 1,
         'modules' => ['symsvel-framework/module-roles'],
     ], JSON_THROW_ON_ERROR));
-    $installNative->invoke(null, $backend, false);
+    $installNative->invoke(null, $backend, false, 'bo');
     $invocation = json_decode((string) file_get_contents($backend.'/native-invocation.json'), true, 512, JSON_THROW_ON_ERROR);
     expect($invocation === ['require', 'symsvel-framework/module-roles', '--bootstrap'], 'Native bootstrap invocation mismatch');
     unlink($backend.'/native-invocation.json');
-    $installNative->invoke(null, $backend, true);
+    $installNative->invoke(null, $backend, true, 'bo');
     $invocation = json_decode((string) file_get_contents($backend.'/native-invocation.json'), true, 512, JSON_THROW_ON_ERROR);
     expect($invocation === ['require', 'symsvel-framework/module-roles', '--bootstrap', '--dev'], 'Native dev bootstrap invocation mismatch');
+    unlink($backend.'/native-invocation.json');
+    // App-specific modules must not be installed when App is absent.
+    file_put_contents($manifest, json_encode([
+        'schema' => 1,
+        'modules' => [],
+        'components' => ['app' => ['symsvel-framework/module-users']],
+    ], JSON_THROW_ON_ERROR));
+    $installNative->invoke(null, $backend, false, 'bo');
+    expect(!is_file($backend.'/native-invocation.json'), 'Users must not install without App');
+    $installNative->invoke(null, $backend, false, 'app');
+    $invocation = json_decode((string) file_get_contents($backend.'/native-invocation.json'), true, 512, JSON_THROW_ON_ERROR);
+    expect($invocation === ['require', 'symsvel-framework/module-users', '--bootstrap'], 'App must install Users');
     unlink($backend.'/native-invocation.json');
     unlink($launcher);
     rmdir($backend.'/scripts');
