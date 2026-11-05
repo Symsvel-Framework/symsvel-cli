@@ -188,7 +188,7 @@ HELP;
         $configuration['repositories'] = array_is_list($repositories)
             ? $repositories : array_values($repositories);
         $encoded = json_encode($configuration, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
-        if (file_put_contents($path, $encoded."\\n", LOCK_EX) === false) {
+        if (file_put_contents($path, $encoded."\n", LOCK_EX) === false) {
             throw new \RuntimeException('Impossible de mettre à jour les dépôts Composer.');
         }
     }
