@@ -112,7 +112,7 @@ PHP);
     require_once dirname(__DIR__).'/src/Cli.php';
     $installNative = new ReflectionMethod(\SymSvelCli\Cli::class, 'installNativeModules');
     // --dev must drop release-only Satis without removing unrelated repositories.
-    $removeSatis = new ReflectionMethod(\\SymSvelCli\\Cli::class, 'removeSatisRepository');
+    $removeSatis = new ReflectionMethod(\SymSvelCli\Cli::class, 'removeSatisRepository');
     file_put_contents($backend.'/composer.json', json_encode([
         'require' => ['symsvel-framework/core' => '^1.0'],
         'repositories' => [
