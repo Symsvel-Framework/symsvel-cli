@@ -70,11 +70,27 @@ HELP;
             'Node.js' => self::available('node'),
             'npm' => self::available('npm'),
         ];
+        $colors = self::supportsAnsiColors();
         foreach ($requirements as $name => $ok) {
-            echo ($ok ? '[OK] ' : '[KO] ').$name.PHP_EOL;
+            $label = $ok ? '[OK]' : '[KO]';
+            if ($colors) {
+                $label = ($ok ? "\\033[32m" : "\\033[31m").$label."\\033[0m";
+            }
+            echo $label.' '.$name.PHP_EOL;
         }
         echo "Symfony CLI : ".(self::available('symfony') ? 'disponible (facultative)' : 'absente (facultative)').PHP_EOL;
         return in_array(false, $requirements, true) ? 1 : 0;
+    }
+
+    private static function supportsAnsiColors(): bool
+    {
+        if (getenv('NO_COLOR') !== false || getenv('TERM') === 'dumb') {
+            return false;
+        }
+        if (function_exists('stream_isatty')) {
+            return stream_isatty(STDOUT);
+        }
+        return function_exists('posix_isatty') && posix_isatty(STDOUT);
     }
 
     private static function createProject(array $args): int
