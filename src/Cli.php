@@ -203,16 +203,16 @@ HELP;
             if (!is_string($package) || !preg_match('~^symsvel-framework/module-[a-z][a-z0-9-]*$~D', $package)) {
                 throw new \RuntimeException('Module natif invalide dans le manifeste.');
             }
-            $launcher = $backend.'/scripts/symsvel-composer-transaction.php';
+        }
+        if ($modules === []) {
+            return;
+        }
+        $launcher = $backend.'/scripts/symsvel-composer-transaction.php';
             if (!is_file($launcher)) {
                 throw new \RuntimeException('Lanceur transactionnel introuvable pour les modules natifs.');
             }
-            $args = [PHP_BINARY, $launcher, 'require', $package, '--bootstrap'];
-            if ($dev) {
-                $args[] = '--dev';
-            }
-            self::run($args, $backend);
-        }
+        $constraints = array_map(static fn (string $package): string => $dev ? $package.':dev-main' : $package, $modules);
+        self::run(array_merge([PHP_BINARY, $launcher, 'require'], $constraints, ['--bootstrap']), $backend);
     }
 
     /**
