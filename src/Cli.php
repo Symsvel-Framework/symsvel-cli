@@ -136,7 +136,16 @@ HELP;
             throw new \RuntimeException('Création partielle : '.$e->getMessage().'. Projet conservé dans '.$backend);
         }
         echo "[symsvel] Projet créé : ".$backend.PHP_EOL;
-        return 0;
+        echo "[symsvel] Démarrage du Setup Wizard...".PHP_EOL;
+        $previousDirectory = getcwd();
+        if (!chdir($backend)) {
+            throw new \\RuntimeException("Impossible d’ouvrir le backend pour le Setup Wizard.");
+        }
+        try {
+            return self::setup([]);
+        } finally {
+            chdir($previousDirectory);
+        }
     }
 
     /**
@@ -250,8 +259,31 @@ HELP;
         if (!is_resource($process)) {
             throw new \RuntimeException('Démarrage du serveur local impossible.');
         }
+        self::openBrowser($url);
         $exitCode = proc_close($process);
         return $exitCode === 0 || $exitCode === 130 ? 0 : 1;
+    }
+
+    /** Best-effort browser launch; the URL remains visible for headless environments. */
+    private static function openBrowser(string $url): void
+    {
+        $command = match (PHP_OS_FAMILY) {
+            'Darwin' => ['open', $url],
+            'Windows' => ['cmd', '/c', 'start', '', $url],
+            default => ['xdg-open', $url],
+        };
+        try {
+            $process = proc_open($command, [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+            if (!is_resource($process)) {
+                return;
+            }
+            foreach ($pipes as $pipe) {
+                fclose($pipe);
+            }
+            proc_close($process);
+        } catch (\\Throwable) {
+            // A missing desktop opener must never prevent manual setup.
+        }
     }
 
     private static function finalizeSetup(array $args): int
