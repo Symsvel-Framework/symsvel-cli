@@ -24,13 +24,13 @@ symsvel update symsvel-framework/module-test-back
 symsvel remove symsvel-framework/module-test-back
 ```
 
-`create-project` appelle `composer create-project symsvel-framework/back backend`, puis `php bin/console symsvel:install`. La configuration BDD reste assurée par le setup web existant, avant l'accès au BO. Les projets partiellement créés ne sont jamais supprimés automatiquement.
+`create-project` appelle `composer create-project symsvel-framework/back backend`, puis `php bin/console symsvel:install`. La configuration BDD est réalisée par le Setup Wizard local, avant l'accès au BO. Les projets partiellement créés ne sont jamais supprimés automatiquement.
 
 Le mode `--dev` crée le squelette depuis `dev-main`, résout Core et Tooling sur `dev-main` et lance l'installation dans l'environnement Symfony standard (`dev`). Le mode normal conserve les releases stables. Un nouveau répertoire est nécessaire pour chaque essai.
 
 Les opérations de packages délèguent au lanceur transactionnel **déjà fourni par le Tooling** (`backend/scripts/symsvel-composer-transaction.php`). Aucun moteur transactionnel n'est dupliqué.
 
-**Limite actuelle :** Composer exécute les scripts et plugins, dont Flex et la synchronisation des modules. L'orchestration transactionnelle des migrations Doctrine et de la restauration de la base reste à finaliser avant les crash-tests complets.
+**Transactions :** le lanceur du Tooling encadre Composer, les synchronisations, les migrations et les restaurations disponibles. La sauvegarde globale des bases est prise en charge pour PostgreSQL et SQLite ; les autres moteurs ne bénéficient pas de cette garantie. Voir la documentation du Tooling.
 
 La CLI Symfony n'est pas nécessaire. Les commandes Composer et Symfony natives restent disponibles pour les crash-tests du framework.
 
