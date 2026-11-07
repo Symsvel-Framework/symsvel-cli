@@ -25,3 +25,5 @@ Cette étape ne couvre pas encore l'actualisation des dépôts Composer pour les
 **Limite actuelle :** ces tests vérifient la délégation et les arguments transmis, pas encore la résolution réelle d'un nouveau module depuis son dépôt VCS. Cette dernière reste à valider dans Tooling et lors des crash-tests.
 
 Les contraintes explicites, qu'elles soient intégrées au nom (`vendor/package:^1.0`) ou fournies en second argument (`vendor/package ^1.0`), ne sont pas remplacées par `dev-main`. Le canal `dev` fournit la valeur par défaut uniquement lorsque la commande `require` ne précise aucune contrainte.
+
+Une option Composer telle que `--no-interaction` après le nom du package ne constitue pas une contrainte de version : le canal `dev` reste appliqué si aucune version n'a été précisée.
