@@ -213,6 +213,22 @@ HELP;
         }
     }
 
+    /** The project provenance is mandatory for every maintenance operation. */
+    private static function readProjectChannel(string $backend): string
+    {
+        $directory = $backend.'/.symsvel';
+        $path = $directory.'/project.json';
+        if (is_link($directory) || is_link($path) || !is_file($path)) {
+            throw new \RuntimeException('Canal SymSvel absent ou non fiable : '.$path);
+        }
+        $configuration = json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+        if (!is_array($configuration) || ($configuration['schema'] ?? null) !== 1
+            || !in_array($configuration['channel'] ?? null, ['stable', 'dev'], true)) {
+            throw new \RuntimeException('Canal SymSvel invalide : '.$path);
+        }
+        return $configuration['channel'];
+    }
+
     /**
      * Native modules are declared by the skeleton, never hard-coded in the CLI.
      * Composer/Flex installs each package; migrations wait for the Setup Wizard.
@@ -484,6 +500,7 @@ HELP;
             if ($backend === null) {
                 throw new \RuntimeException('Projet SymSvel introuvable (composer.json + bin/console).');
             }
+            self::readProjectChannel($backend);
             self::run([PHP_BINARY, 'bin/console', 'symsvel:component:update', $args[0], '--no-interaction'], $backend);
             return 0;
         }
@@ -498,6 +515,7 @@ HELP;
         if ($backend === null) {
             throw new \RuntimeException('Projet SymSvel introuvable (composer.json + bin/console).');
         }
+        self::readProjectChannel($backend);
         $launcher = $backend.'/scripts/symsvel-composer-transaction.php';
         if (!is_file($launcher)) {
             throw new \RuntimeException('Lanceur transactionnel absent : '.$launcher.'. Mettre à jour symsvel-tooling.');
