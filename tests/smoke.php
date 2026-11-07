@@ -206,6 +206,29 @@ PHP);
     expect($status !== 0 && str_contains($error, 'Canal SymSvel invalide'), 'Component update must reject invalid provenance');
     file_put_contents($channelFile, json_encode(['schema' => 1, 'channel' => 'dev'], JSON_THROW_ON_ERROR));
 
+    // Package require automatically inherits the persisted development channel.
+    mkdir($backend.'/scripts', 0775, true);
+    file_put_contents($launcher, <<<'PHP'
+<?php
+file_put_contents(__DIR__.'/../package-invocation.json', json_encode(array_slice($argv, 1), JSON_THROW_ON_ERROR));
+PHP);
+    [$status, , $error] = executeCli(['require', 'symsvel-framework/module-demo'], $project);
+    expect($status === 0, 'Dev package require failed: '.$error);
+    $invocation = json_decode((string) file_get_contents($backend.'/package-invocation.json'), true, 512, JSON_THROW_ON_ERROR);
+    expect($invocation === ['require', 'symsvel-framework/module-demo', '--dev'], 'Dev require must inherit project channel');
+    [$status, , $error] = executeCli(['require', 'symsvel-framework/module-demo', '--dev'], $project);
+    expect($status !== 0 && str_contains($error, 'réservé à create-project'), 'Per-command --dev must be rejected');
+    unlink($backend.'/package-invocation.json');
+    file_put_contents($channelFile, json_encode(['schema' => 1, 'channel' => 'stable'], JSON_THROW_ON_ERROR));
+    [$status, , $error] = executeCli(['require', 'symsvel-framework/module-demo'], $project);
+    expect($status === 0, 'Stable package require failed: '.$error);
+    $invocation = json_decode((string) file_get_contents($backend.'/package-invocation.json'), true, 512, JSON_THROW_ON_ERROR);
+    expect($invocation === ['require', 'symsvel-framework/module-demo'], 'Stable require must not select dev-main');
+    unlink($backend.'/package-invocation.json');
+    unlink($launcher);
+    rmdir($backend.'/scripts');
+    file_put_contents($channelFile, json_encode(['schema' => 1, 'channel' => 'dev'], JSON_THROW_ON_ERROR));
+
     // Component updates must reach Tooling, never Composer's package transaction.
     [$status, , $error] = executeCli(['update', 'app'], $project);
     expect($status === 0, 'Component update delegation failed: '.$error);
