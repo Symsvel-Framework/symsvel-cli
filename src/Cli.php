@@ -135,6 +135,7 @@ HELP;
             throw new \RuntimeException('Projet créé, mais bin/console introuvable. Destination conservée : '.$directory);
         }
         try {
+            self::persistProjectChannel($backend, $dev ? 'dev' : 'stable');
             if ($dev) {
                 // The initial skeleton has already been created. Further Composer
                 // operations must resolve SymSvel from GitHub, not release-only Satis.
@@ -176,6 +177,39 @@ HELP;
             return self::setup([]);
         } finally {
             chdir($previousDirectory);
+        }
+    }
+
+    /**
+     * Set once at project creation; never infer the channel from APP_ENV.
+     * The Tooling resolver reads the same backend/.symsvel/project.json contract.
+     */
+    private static function persistProjectChannel(string $backend, string $channel): void
+    {
+        if (!in_array($channel, ['stable', 'dev'], true)) {
+            throw new \InvalidArgumentException('Canal SymSvel inconnu.');
+        }
+        $directory = $backend.'/.symsvel';
+        $path = $directory.'/project.json';
+        if (is_link($directory) || (file_exists($directory) && !is_dir($directory)) || is_link($path) || file_exists($path)) {
+            throw new \RuntimeException('Configuration de provenance déjà présente ou non fiable.');
+        }
+        if (!is_dir($directory) && !mkdir($directory, 0700, true) && !is_dir($directory)) {
+            throw new \RuntimeException('Création de la configuration SymSvel impossible.');
+        }
+        $temporary = tempnam($directory, '.project-');
+        if ($temporary === false) {
+            throw new \RuntimeException('Préparation de la provenance impossible.');
+        }
+        try {
+            $content = json_encode(['schema' => 1, 'channel' => $channel], JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR)."\n";
+            if (file_put_contents($temporary, $content) === false || !rename($temporary, $path)) {
+                throw new \RuntimeException('Écriture de la provenance impossible.');
+            }
+        } finally {
+            if (is_file($temporary)) {
+                unlink($temporary);
+            }
         }
     }
 
