@@ -31,3 +31,17 @@ Une option Composer telle que `--no-interaction` après le nom du package ne con
 ## Bootstrap des modules natifs
 
 La CLI ne déclare plus elle-même les dépôts VCS des modules pendant le bootstrap initial. Elle valide le manifeste et délègue le `require` des modules au lanceur transactionnel de Tooling, qui prépare les sources `dev` après son checkpoint Composer. Ainsi, un échec de résolution peut restaurer `composer.json` via le rollback existant. Le test smoke vérifie l'absence de mutation des repositories par la CLI. Le parcours réel XT reste à valider.
+
+## Protocole de crash-test XT (à exécuter après CI verte)
+
+**Précondition :** conserver les PR CLI #10 et Tooling #62 en draft ; utiliser un répertoire XT neuf, jamais un projet contenant des données à préserver. La création démarre le Setup Wizard interactif. Aucun contournement de XT ni modification manuelle du canal.
+
+1. Dans le répertoire parent de XT, exécuter `symsvel doctor`, puis `symsvel create-project --components=all --dev` depuis un répertoire de travail neuf. Vérifier que `backend/.symsvel/project.json` contient `schema: 1` et `channel: dev` ; vérifier l'installation de BO, App, Front et des modules natifs attendus.
+2. Finaliser le Setup Wizard avec une base de test dédiée, puis vérifier routes, migrations, accès BO/App, synchronisation des modules et builds.
+3. Depuis la racine du projet créé, lancer `symsvel require symsvel-framework/module-test-back` sans contrainte explicite : en canal `dev`, la résolution attendue est `dev-main` via le dépôt VCS officiel. Vérifier Composer, routes et interfaces du module, ainsi que les migrations.
+4. Lancer `symsvel update symsvel-framework/module-test-back` : mise à jour sélective, sans changement de canal. Vérifier que les modifications locales des composants ne sont pas écrasées.
+5. Tester `symsvel remove symsvel-framework/module-test-back` et vérifier le nettoyage des migrations et des interfaces. Utiliser une base jetable et conserver un état de référence pour les comparaisons.
+6. Tester séparément le canal `stable` dans un **autre projet neuf**, sans `--dev`. Ce scénario dépend de la publication effective des versions dans Satis : ne pas interpréter une release absente comme une réussite du résolveur.
+7. Pour le rollback, injecter un échec **uniquement sur une copie jetable** du projet XT et comparer `composer.json`, `composer.lock`, `vendor`, les fichiers de composants et la base avant/après. Ne jamais provoquer cet échec sur Choralys ou un projet réel.
+
+**Critères de clôture :** CI vertes des deux PR, installation et maintenance réelles en `dev` et `stable` (si releases disponibles), migrations, rollback, builds, tests de routes et interfaces, documentation vérifiée. Toute anomalie reste ouverte dans la PR correspondante ; aucun merge anticipé.
