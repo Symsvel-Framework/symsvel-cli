@@ -8,7 +8,7 @@
 
 Le canal par défaut est `stable`. L'option `symsvel create-project --dev`, réservée aux mainteneurs et aux projets de crash-test, enregistre `dev`. Cette configuration est indépendante de Symfony `APP_ENV`, et ne doit jamais être écrasée automatiquement. Le résolveur Tooling lit le même contrat.
 
-**État du chantier :** l'écriture initiale et la validation stricte de la provenance avant `require`, `update` et `remove` sont implémentées. La résolution Composer des contraintes et dépôts selon ce canal, ainsi que l'unification des parcours, restent à terminer avant merge. Aucun changement de canal ou migration d'anciens projets n'est prévu.
+**État du chantier (07/11/2026) :** l'écriture et la validation stricte du canal sont implémentées. La CLI applique la contrainte `dev-main` par défaut aux packages SymSvel sans contrainte explicite ; Tooling prépare les dépôts VCS des modules en canal `dev` après checkpoint. Les tests CI sont verts sur les têtes des PR #10 et #62 avant cette mise à jour documentaire. Le parcours réseau GitHub/Satis et le Setup Wizard complet restent à éprouver sur XT. Aucun changement de canal ou migration automatique d'anciens projets n'est prévu.
 
 Toute commande de maintenance refuse un canal absent, invalide ou symbolique avant de déléguer au Tooling. Aucun canal par défaut n'est inféré pour un projet déjà créé.
 
@@ -16,13 +16,13 @@ Toute commande de maintenance refuse un canal absent, invalide ou symbolique ava
 
 `symsvel require <package>` reprend désormais le canal du projet : en `dev`, la CLI transmet la sélection de `dev-main` au lanceur transactionnel Composer existant **uniquement pour les packages `symsvel-framework/*`**. Les dépendances tierces conservent leur résolution Composer habituelle ; en `stable`, elle conserve les contraintes normales de Composer. L'option `--dev` sur les commandes de maintenance est refusée : elle ne sert qu'à `create-project`. Les contraintes explicitement fournies par l'utilisateur restent prioritaires dans le lanceur actuel.
 
-Cette étape ne couvre pas encore l'actualisation des dépôts Composer pour les packages ajoutés après la création, ni la sélection de versions pendant `update`. Ces points restent ouverts dans la PR draft.
+Pour les nouveaux modules `symsvel-framework/module-*` en canal `dev`, Tooling déclare le dépôt VCS officiel dans la transaction. `update` respecte les contraintes existantes, sans réécriture automatique de versions. La résolution GitHub/Satis réelle reste à valider sur XT.
 
 ## Mise à jour sélective
 
 `symsvel update <package>` délègue la mise à jour au lanceur transactionnel Composer, sans changer les contraintes du `composer.json` ou du `composer.lock` depuis la CLI. En particulier, un package déjà contraint à `dev-main` dans un projet `dev` reste soumis à cette contrainte ; `stable` conserve ses contraintes de release. `symsvel remove` conserve également la cible du package. Des tests smoke couvrent les deux canaux et la préservation des contraintes explicites.
 
-**Limite actuelle :** ces tests vérifient la délégation et les arguments transmis, pas encore la résolution réelle d'un nouveau module depuis son dépôt VCS. Cette dernière reste à valider dans Tooling et lors des crash-tests.
+**Limite actuelle :** les smoke tests CLI vérifient la délégation et les arguments. Tooling teste en complément une résolution Composer réelle sur un dépôt Git local substitué, mais pas encore le dépôt GitHub officiel ni Satis. Ces parcours restent à valider lors des crash-tests XT.
 
 Les contraintes explicites, qu'elles soient intégrées au nom (`vendor/package:^1.0`) ou fournies en second argument (`vendor/package ^1.0`), ne sont pas remplacées par `dev-main`. Le canal `dev` fournit la valeur par défaut uniquement lorsque la commande `require` ne précise aucune contrainte.
 
