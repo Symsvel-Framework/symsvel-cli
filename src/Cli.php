@@ -515,7 +515,7 @@ HELP;
         if ($backend === null) {
             throw new \RuntimeException('Projet SymSvel introuvable (composer.json + bin/console).');
         }
-        self::readProjectChannel($backend);
+        $channel = self::readProjectChannel($backend);
         $launcher = $backend.'/scripts/symsvel-composer-transaction.php';
         if (!is_file($launcher)) {
             throw new \RuntimeException('Lanceur transactionnel absent : '.$launcher.'. Mettre à jour symsvel-tooling.');
@@ -525,6 +525,13 @@ HELP;
         }
         if (in_array('--bootstrap', $args, true) && $command !== 'require') {
             throw new \RuntimeException('--bootstrap est réservé à symsvel require.');
+        }
+        // Provenance is persisted, never supplied as an operation-specific CLI flag.
+        if (in_array('--dev', $args, true)) {
+            throw new \RuntimeException('--dev est réservé à create-project ; le canal du projet est déjà enregistré.');
+        }
+        if ($channel === 'dev' && $command === 'require') {
+            $args[] = '--dev';
         }
         self::run(array_merge([PHP_BINARY, $launcher, $command], $args), $backend);
         return 0;
