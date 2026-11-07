@@ -534,8 +534,9 @@ HELP;
             // Only SymSvel packages follow the framework's dev-main channel.
             // Third-party packages retain their normal Composer resolution.
             $package = $args[0] ?? '';
+            $explicitConstraint = isset($args[1]) && is_string($args[1]) && !str_starts_with($args[1], '-');
             if (is_string($package) && preg_match('~^symsvel-framework/[a-z0-9][a-z0-9-]*$~D', $package)
-                && !isset($args[1])) {
+                && !$explicitConstraint) {
                 // Never override an explicitly requested version or constraint.
                 $args[] = '--dev';
             }
