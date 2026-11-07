@@ -531,7 +531,12 @@ HELP;
             throw new \RuntimeException('--dev est réservé à create-project ; le canal du projet est déjà enregistré.');
         }
         if ($channel === 'dev' && $command === 'require') {
-            $args[] = '--dev';
+            // Only SymSvel packages follow the framework's dev-main channel.
+            // Third-party packages retain their normal Composer resolution.
+            $package = $args[0] ?? '';
+            if (is_string($package) && preg_match('~^symsvel-framework/[a-z0-9][a-z0-9-]*(?::[^ ]+)?$~D', $package)) {
+                $args[] = '--dev';
+            }
         }
         self::run(array_merge([PHP_BINARY, $launcher, $command], $args), $backend);
         return 0;
