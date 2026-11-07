@@ -157,9 +157,11 @@ PHP);
     $invocation = json_decode((string) file_get_contents($backend.'/native-invocation.json'), true, 512, JSON_THROW_ON_ERROR);
     expect($invocation === ['require', 'symsvel-framework/module-roles', '--bootstrap'], 'Native bootstrap invocation mismatch');
     unlink($backend.'/native-invocation.json');
+    $beforeBootstrapRepositories = (string) file_get_contents($backend.'/composer.json');
     $installNative->invoke(null, $backend, true, 'bo');
     $invocation = json_decode((string) file_get_contents($backend.'/native-invocation.json'), true, 512, JSON_THROW_ON_ERROR);
     expect($invocation === ['require', 'symsvel-framework/module-roles:dev-main', '--bootstrap'], 'Native dev bootstrap invocation mismatch');
+    expect(file_get_contents($backend.'/composer.json') === $beforeBootstrapRepositories, 'CLI bootstrap must not mutate Composer repositories outside Tooling transaction');
     unlink($backend.'/native-invocation.json');
     // All native modules must be sent in one Composer transaction.
     file_put_contents($manifest, json_encode([
