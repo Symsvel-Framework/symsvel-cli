@@ -186,6 +186,26 @@ PHP);
     rmdir($backend.'/scripts');
     unlink($manifest);
 
+    // Every maintenance command must reject missing or invalid provenance.
+    [$status, , $error] = executeCli(['update', 'app'], $project);
+    expect($status !== 0 && str_contains($error, 'Canal SymSvel absent'), 'Component update must reject missing provenance');
+    [$status, , $error] = executeCli(['update'], $project);
+    expect($status !== 0 && str_contains($error, 'Canal SymSvel absent'), 'Composer update must reject missing provenance');
+    $projectChannel = new ReflectionMethod(\SymSvelCli\Cli::class, 'persistProjectChannel');
+    $projectChannel->invoke(null, $backend, 'dev');
+    $channelFile = $backend.'/.symsvel/project.json';
+    expect(json_decode((string) file_get_contents($channelFile), true)['channel'] === 'dev', 'Dev channel must persist');
+    try {
+        $projectChannel->invoke(null, $backend, 'stable');
+        throw new RuntimeException('Channel switch must be refused');
+    } catch (RuntimeException $error) {
+        expect(str_contains($error->getMessage(), 'déjà présente'), 'Channel switch rejection mismatch');
+    }
+    file_put_contents($channelFile, '{"schema":1,"channel":"invalid"}');
+    [$status, , $error] = executeCli(['update', 'app'], $project);
+    expect($status !== 0 && str_contains($error, 'Canal SymSvel invalide'), 'Component update must reject invalid provenance');
+    file_put_contents($channelFile, json_encode(['schema' => 1, 'channel' => 'dev'], JSON_THROW_ON_ERROR));
+
     // Component updates must reach Tooling, never Composer's package transaction.
     [$status, , $error] = executeCli(['update', 'app'], $project);
     expect($status === 0, 'Component update delegation failed: '.$error);
