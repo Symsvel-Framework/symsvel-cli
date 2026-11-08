@@ -1,10 +1,8 @@
 # SymSvel CLI
 
-CLI autonome pour les projets SymSvel. **Prototype V1 non publié**, PHP >= 8.4 requis.
+Point d'entrée autonome des projets SymSvel (PHP 8.4+, Composer, Git ; Node.js/npm pour les interfaces SvelteKit). La CLI orchestre les commandes utilisateur ; **le Tooling conserve les moteurs d'installation, synchronisation et transaction**. Cette branche de travail est coordonnée avec Tooling PR #62 et doit encore être validée sur XT.
 
-## Installation locale (Mac / Linux)
-
-Cloner le dépôt puis rendre le lanceur exécutable et le placer dans le PATH :
+## Installation locale de la CLI
 
 ```bash
 chmod +x bin/symsvel
@@ -12,45 +10,48 @@ ln -s "$(pwd)/bin/symsvel" /usr/local/bin/symsvel
 symsvel doctor
 ```
 
-Le chemin `/usr/local/bin` doit exister et être accessible en écriture. Aucun changement système automatique n'est effectué par la CLI.
+Le dossier de destination doit exister et être accessible en écriture. L'accès aux dépôts privés SymSvel et la configuration Composer/GitHub sont nécessaires selon le canal.
 
-## Commandes
+## Créer un projet
 
 ```bash
+symsvel doctor
 symsvel create-project --components=all
+# Derniers commits de développement, pour maintenance et crash-tests :
 symsvel create-project --components=all --dev
+```
+
+`--components=bo|app|front|all` installe le BO et les interfaces supplémentaires demandées. Symfony est installé dans `backend/` ; `bo/`, `app/` et `front/` sont ses dossiers frères. La création délègue l'installation au Tooling et démarre le Setup Wizard local. Une création partielle n'est pas effacée automatiquement.
+
+Le canal est choisi **à la création** et écrit dans `backend/.symsvel/project.json` : `stable` par défaut, `dev` avec `--dev`. Il est indépendant de `APP_ENV`. Les commandes de maintenance exigent une provenance valide et ne déduisent pas automatiquement un canal pour un ancien projet. Le canal `dev` sélectionne par défaut `dev-main` pour les packages SymSvel sans contrainte explicite ; une contrainte fournie par l'utilisateur est conservée. Voir [le contrat de provenance et le protocole XT](docs/reference/provenance.md).
+
+## Maintenance sélective
+
+```bash
 symsvel require symsvel-framework/module-test-back
 symsvel update symsvel-framework/module-test-back
 symsvel remove symsvel-framework/module-test-back
+symsvel update bo
 ```
 
-`create-project` appelle `composer create-project symsvel-framework/back backend`, puis `php bin/console symsvel:install`. La configuration BDD est réalisée par le Setup Wizard local, avant l'accès au BO. Les projets partiellement créés ne sont jamais supprimés automatiquement.
+Les opérations de packages utilisent le **lanceur transactionnel Composer du Tooling**, sans réimplémentation dans la CLI. Les commandes Composer natives ne sont pas interceptées. `symsvel update bo|app|front` utilise le cycle de vie natif des interfaces : analyse des fichiers gérés, préservation des modifications locales non conflictuelles, refus des collisions. Ce parcours est distinct de `symsvel update <package>` et de la commande Symfony globale `symsvel:update`.
 
-Le mode `--dev` crée le squelette depuis `dev-main`, résout Core et Tooling sur `dev-main` et lance l'installation dans l'environnement Symfony standard (`dev`). Le mode normal conserve les releases stables. Un nouveau répertoire est nécessaire pour chaque essai.
+Le canal `dev` ne garantit pas à lui seul que GitHub/Satis est accessible : les tests d'intégration réseau réels font partie des crash-tests XT. Les restaurations BDD ne sont garanties que lorsque le checkpoint est effectivement disponible, notamment avec PostgreSQL ou SQLite. Voir [la documentation transactionnelle du Tooling](https://github.com/Symsvel-Framework/symsvel-tooling/blob/feat/60-update-init-simplification/docs/composer-transactions.md).
 
-Les opérations de packages délèguent au lanceur transactionnel **déjà fourni par le Tooling** (`backend/scripts/symsvel-composer-transaction.php`). Aucun moteur transactionnel n'est dupliqué.
-
-**Transactions :** le lanceur du Tooling encadre Composer, les synchronisations, les migrations et les restaurations disponibles. La sauvegarde globale des bases est prise en charge pour PostgreSQL et SQLite ; les autres moteurs ne bénéficient pas de cette garantie. Voir la documentation du Tooling.
-
-La CLI Symfony n'est pas nécessaire. Les commandes Composer et Symfony natives restent disponibles pour les crash-tests du framework.
-
-## Créer un module
-
-Le ModuleMaker est implémenté exclusivement dans `symsvel-framework/tooling`.
-La CLI autonome lui délègue la génération, sans maintenir de deuxième générateur.
-
-Depuis la racine du framework SymSvel (ou un sous-dossier) :
+## Setup et génération de modules
 
 ```bash
-symsvel make:module documents --scopes=back,front
+symsvel setup
+symsvel setup:finalize
+symsvel make:module catalogue --vendor=acme --scopes=back,bo,app
 ```
 
-Depuis la racine d'un projet SymSvel (ou son dossier `backend/`) :
+Le Setup Wizard configure le projet localement après l'installation des composants. Le ModuleMaker est implémenté dans Tooling et partagé avec la CLI. Depuis un workspace SymSvel, les modules sont générés dans `modules/<nom>`, jamais dans `vendor/`. `--workspace=<chemin>` permet de choisir une destination. Le scope `back` est toujours inclus.
 
-```bash
-symsvel make:module catalogue --vendor=acme --scopes=bo,app
-```
+## Références et validation
 
-Le module est créé dans `<workspace>/modules/<nom>`. Le scope `back` est toujours présent ; les profils historiques `bo`, `app`, `front`, `all` restent acceptés. La commande accepte `--workspace=<chemin>` pour choisir explicitement la destination.
+- [Commandes](docs/reference/commandes.md)
+- [Fichiers et registres](docs/reference/fichiers.md)
+- [Provenance et crash-tests XT](docs/reference/provenance.md)
 
-La commande projet nécessite le Tooling installé dans le backend. La commande framework utilise le Maker de `framework/tools/src/Module/ModuleMaker.php` ; aucun backend Symfony n'est nécessaire dans ce cas.
+Avant de considérer les PR CLI #10 et Tooling #62 terminées : tests, CI, vérification documentaire et crash-tests XT sur Mac, notamment Setup Wizard, modules natifs, synchronisation, migrations, mises à jour, retrait et rollbacks. **Ne pas merger uniquement sur une CI verte.**

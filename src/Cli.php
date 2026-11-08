@@ -135,6 +135,7 @@ HELP;
             throw new \RuntimeException('Projet créé, mais bin/console introuvable. Destination conservée : '.$directory);
         }
         try {
+            self::persistProjectChannel($backend, $dev ? 'dev' : 'stable');
             if ($dev) {
                 // The initial skeleton has already been created. Further Composer
                 // operations must resolve SymSvel from GitHub, not release-only Satis.
@@ -177,6 +178,55 @@ HELP;
         } finally {
             chdir($previousDirectory);
         }
+    }
+
+    /**
+     * Set once at project creation; never infer the channel from APP_ENV.
+     * The Tooling resolver reads the same backend/.symsvel/project.json contract.
+     */
+    private static function persistProjectChannel(string $backend, string $channel): void
+    {
+        if (!in_array($channel, ['stable', 'dev'], true)) {
+            throw new \InvalidArgumentException('Canal SymSvel inconnu.');
+        }
+        $directory = $backend.'/.symsvel';
+        $path = $directory.'/project.json';
+        if (is_link($directory) || (file_exists($directory) && !is_dir($directory)) || is_link($path) || file_exists($path)) {
+            throw new \RuntimeException('Configuration de provenance déjà présente ou non fiable.');
+        }
+        if (!is_dir($directory) && !mkdir($directory, 0700, true) && !is_dir($directory)) {
+            throw new \RuntimeException('Création de la configuration SymSvel impossible.');
+        }
+        $temporary = tempnam($directory, '.project-');
+        if ($temporary === false) {
+            throw new \RuntimeException('Préparation de la provenance impossible.');
+        }
+        try {
+            $content = json_encode(['schema' => 1, 'channel' => $channel], JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR)."\n";
+            if (file_put_contents($temporary, $content) === false || !rename($temporary, $path)) {
+                throw new \RuntimeException('Écriture de la provenance impossible.');
+            }
+        } finally {
+            if (is_file($temporary)) {
+                unlink($temporary);
+            }
+        }
+    }
+
+    /** The project provenance is mandatory for every maintenance operation. */
+    private static function readProjectChannel(string $backend): string
+    {
+        $directory = $backend.'/.symsvel';
+        $path = $directory.'/project.json';
+        if (is_link($directory) || is_link($path) || !is_file($path)) {
+            throw new \RuntimeException('Canal SymSvel absent ou non fiable : '.$path);
+        }
+        $configuration = json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+        if (!is_array($configuration) || ($configuration['schema'] ?? null) !== 1
+            || !in_array($configuration['channel'] ?? null, ['stable', 'dev'], true)) {
+            throw new \RuntimeException('Canal SymSvel invalide : '.$path);
+        }
+        return $configuration['channel'];
     }
 
     /**
@@ -233,17 +283,6 @@ HELP;
             }
         }
         $modules = array_values(array_unique($modules));
-        if ($dev) {
-            // Satis can expose only tagged releases. In development mode, register
-            // the module VCS repositories so Composer can resolve dev-main.
-            foreach ($modules as $package) {
-                if (!is_string($package) || !preg_match('~^symsvel-framework/module-[a-z][a-z0-9-]*$~D', $package)) {
-                    throw new \RuntimeException('Module natif invalide dans le manifeste.');
-                }
-                $moduleName = substr($package, strlen('symsvel-framework/'));
-                self::run(['composer', 'config', 'repositories.'.$moduleName.'-dev', 'vcs', 'https://github.com/Symsvel-Framework/symsvel-'.$moduleName.'.git'], $backend);
-            }
-        }
         foreach ($modules as $package) {
             if (!is_string($package) || !preg_match('~^symsvel-framework/module-[a-z][a-z0-9-]*$~D', $package)) {
                 throw new \RuntimeException('Module natif invalide dans le manifeste.');
@@ -450,6 +489,7 @@ HELP;
             if ($backend === null) {
                 throw new \RuntimeException('Projet SymSvel introuvable (composer.json + bin/console).');
             }
+            self::readProjectChannel($backend);
             self::run([PHP_BINARY, 'bin/console', 'symsvel:component:update', $args[0], '--no-interaction'], $backend);
             return 0;
         }
@@ -464,6 +504,7 @@ HELP;
         if ($backend === null) {
             throw new \RuntimeException('Projet SymSvel introuvable (composer.json + bin/console).');
         }
+        $channel = self::readProjectChannel($backend);
         $launcher = $backend.'/scripts/symsvel-composer-transaction.php';
         if (!is_file($launcher)) {
             throw new \RuntimeException('Lanceur transactionnel absent : '.$launcher.'. Mettre à jour symsvel-tooling.');
@@ -473,6 +514,21 @@ HELP;
         }
         if (in_array('--bootstrap', $args, true) && $command !== 'require') {
             throw new \RuntimeException('--bootstrap est réservé à symsvel require.');
+        }
+        // Provenance is persisted, never supplied as an operation-specific CLI flag.
+        if (in_array('--dev', $args, true)) {
+            throw new \RuntimeException('--dev est réservé à create-project ; le canal du projet est déjà enregistré.');
+        }
+        if ($channel === 'dev' && $command === 'require') {
+            // Only SymSvel packages follow the framework's dev-main channel.
+            // Third-party packages retain their normal Composer resolution.
+            $package = $args[0] ?? '';
+            $explicitConstraint = isset($args[1]) && is_string($args[1]) && !str_starts_with($args[1], '-');
+            if (is_string($package) && preg_match('~^symsvel-framework/[a-z0-9][a-z0-9-]*$~D', $package)
+                && !$explicitConstraint) {
+                // Never override an explicitly requested version or constraint.
+                $args[] = '--dev';
+            }
         }
         self::run(array_merge([PHP_BINARY, $launcher, $command], $args), $backend);
         return 0;

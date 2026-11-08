@@ -157,9 +157,11 @@ PHP);
     $invocation = json_decode((string) file_get_contents($backend.'/native-invocation.json'), true, 512, JSON_THROW_ON_ERROR);
     expect($invocation === ['require', 'symsvel-framework/module-roles', '--bootstrap'], 'Native bootstrap invocation mismatch');
     unlink($backend.'/native-invocation.json');
+    $beforeBootstrapRepositories = (string) file_get_contents($backend.'/composer.json');
     $installNative->invoke(null, $backend, true, 'bo');
     $invocation = json_decode((string) file_get_contents($backend.'/native-invocation.json'), true, 512, JSON_THROW_ON_ERROR);
     expect($invocation === ['require', 'symsvel-framework/module-roles:dev-main', '--bootstrap'], 'Native dev bootstrap invocation mismatch');
+    expect(file_get_contents($backend.'/composer.json') === $beforeBootstrapRepositories, 'CLI bootstrap must not mutate Composer repositories outside Tooling transaction');
     unlink($backend.'/native-invocation.json');
     // All native modules must be sent in one Composer transaction.
     file_put_contents($manifest, json_encode([
@@ -185,6 +187,77 @@ PHP);
     unlink($launcher);
     rmdir($backend.'/scripts');
     unlink($manifest);
+
+    // Every maintenance command must reject missing or invalid provenance.
+    [$status, , $error] = executeCli(['update', 'app'], $project);
+    expect($status !== 0 && str_contains($error, 'Canal SymSvel absent'), 'Component update must reject missing provenance');
+    [$status, , $error] = executeCli(['update'], $project);
+    expect($status !== 0 && str_contains($error, 'Canal SymSvel absent'), 'Composer update must reject missing provenance');
+    $projectChannel = new ReflectionMethod(\SymSvelCli\Cli::class, 'persistProjectChannel');
+    $projectChannel->invoke(null, $backend, 'dev');
+    $channelFile = $backend.'/.symsvel/project.json';
+    expect(json_decode((string) file_get_contents($channelFile), true)['channel'] === 'dev', 'Dev channel must persist');
+    try {
+        $projectChannel->invoke(null, $backend, 'stable');
+        throw new RuntimeException('Channel switch must be refused');
+    } catch (RuntimeException $error) {
+        expect(str_contains($error->getMessage(), 'déjà présente'), 'Channel switch rejection mismatch');
+    }
+    file_put_contents($channelFile, '{"schema":1,"channel":"invalid"}');
+    [$status, , $error] = executeCli(['update', 'app'], $project);
+    expect($status !== 0 && str_contains($error, 'Canal SymSvel invalide'), 'Component update must reject invalid provenance');
+    file_put_contents($channelFile, json_encode(['schema' => 1, 'channel' => 'dev'], JSON_THROW_ON_ERROR));
+
+    // Package require automatically inherits the persisted development channel.
+    mkdir($backend.'/scripts', 0775, true);
+    file_put_contents($launcher, <<<'PHP'
+<?php
+file_put_contents(__DIR__.'/../package-invocation.json', json_encode(array_slice($argv, 1), JSON_THROW_ON_ERROR));
+PHP);
+    [$status, , $error] = executeCli(['require', 'symsvel-framework/module-demo'], $project);
+    expect($status === 0, 'Dev package require failed: '.$error);
+    $invocation = json_decode((string) file_get_contents($backend.'/package-invocation.json'), true, 512, JSON_THROW_ON_ERROR);
+    expect($invocation === ['require', 'symsvel-framework/module-demo', '--dev'], 'Dev require must inherit project channel');
+    [$status, , $error] = executeCli(['require', 'psr/log'], $project);
+    expect($status === 0, 'Third-party package require failed: '.$error);
+    $invocation = json_decode((string) file_get_contents($backend.'/package-invocation.json'), true, 512, JSON_THROW_ON_ERROR);
+    expect($invocation === ['require', 'psr/log'], 'Third-party package must not inherit SymSvel dev-main');
+    [$status, , $error] = executeCli(['require', 'symsvel-framework/module-demo:^1.0'], $project);
+    expect($status === 0, 'Explicit package constraint failed: '.$error);
+    $invocation = json_decode((string) file_get_contents($backend.'/package-invocation.json'), true, 512, JSON_THROW_ON_ERROR);
+    expect($invocation === ['require', 'symsvel-framework/module-demo:^1.0'], 'Explicit constraint must remain unchanged by the CLI');
+    [$status, , $error] = executeCli(['require', 'symsvel-framework/module-demo', '^1.0'], $project);
+    expect($status === 0, 'Separate explicit constraint failed: '.$error);
+    $invocation = json_decode((string) file_get_contents($backend.'/package-invocation.json'), true, 512, JSON_THROW_ON_ERROR);
+    expect($invocation === ['require', 'symsvel-framework/module-demo', '^1.0'], 'Separate explicit constraint must not be overridden');
+    [$status, , $error] = executeCli(['require', 'symsvel-framework/module-demo', '--no-interaction'], $project);
+    expect($status === 0, 'Dev require with Composer option failed: '.$error);
+    $invocation = json_decode((string) file_get_contents($backend.'/package-invocation.json'), true, 512, JSON_THROW_ON_ERROR);
+    expect($invocation === ['require', 'symsvel-framework/module-demo', '--no-interaction', '--dev'], 'Composer option must not be mistaken for version constraint');
+    [$status, , $error] = executeCli(['update', 'symsvel-framework/module-demo'], $project);
+    expect($status === 0, 'Dev package update failed: '.$error);
+    $invocation = json_decode((string) file_get_contents($backend.'/package-invocation.json'), true, 512, JSON_THROW_ON_ERROR);
+    expect($invocation === ['update', 'symsvel-framework/module-demo'], 'Package update must preserve Composer lock constraints');
+    [$status, , $error] = executeCli(['require', 'symsvel-framework/module-demo', '--dev'], $project);
+    expect($status !== 0 && str_contains($error, 'réservé à create-project'), 'Per-command --dev must be rejected');
+    unlink($backend.'/package-invocation.json');
+    file_put_contents($channelFile, json_encode(['schema' => 1, 'channel' => 'stable'], JSON_THROW_ON_ERROR));
+    [$status, , $error] = executeCli(['require', 'symsvel-framework/module-demo'], $project);
+    expect($status === 0, 'Stable package require failed: '.$error);
+    $invocation = json_decode((string) file_get_contents($backend.'/package-invocation.json'), true, 512, JSON_THROW_ON_ERROR);
+    expect($invocation === ['require', 'symsvel-framework/module-demo'], 'Stable require must not select dev-main');
+    [$status, , $error] = executeCli(['update', 'symsvel-framework/module-demo'], $project);
+    expect($status === 0, 'Stable package update failed: '.$error);
+    $invocation = json_decode((string) file_get_contents($backend.'/package-invocation.json'), true, 512, JSON_THROW_ON_ERROR);
+    expect($invocation === ['update', 'symsvel-framework/module-demo'], 'Stable update must retain package target');
+    [$status, , $error] = executeCli(['remove', 'symsvel-framework/module-demo'], $project);
+    expect($status === 0, 'Stable package remove failed: '.$error);
+    $invocation = json_decode((string) file_get_contents($backend.'/package-invocation.json'), true, 512, JSON_THROW_ON_ERROR);
+    expect($invocation === ['remove', 'symsvel-framework/module-demo'], 'Remove must not rewrite package target');
+    unlink($backend.'/package-invocation.json');
+    unlink($launcher);
+    rmdir($backend.'/scripts');
+    file_put_contents($channelFile, json_encode(['schema' => 1, 'channel' => 'dev'], JSON_THROW_ON_ERROR));
 
     // Component updates must reach Tooling, never Composer's package transaction.
     [$status, , $error] = executeCli(['update', 'app'], $project);
