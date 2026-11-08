@@ -55,3 +55,8 @@ Le Setup Wizard configure le projet localement après l'installation des composa
 - [Provenance et crash-tests XT](docs/reference/provenance.md)
 
 Avant de considérer les PR CLI #10 et Tooling #62 terminées : tests, CI, vérification documentaire et crash-tests XT sur Mac, notamment Setup Wizard, modules natifs, synchronisation, migrations, mises à jour, retrait et rollbacks. **Ne pas merger uniquement sur une CI verte.**
+
+
+### Contrat de setup en cours de réalisation
+
+`create-project` prépare les sources et modules sans build Svelte. Le Setup s'effectue ensuite en deux écrans : configuration projet/domaine/BDD (PostgreSQL, MySQL, MariaDB ou SQLite), création de la base et migrations ; puis saisie et création directe du premier administrateur sans stockage temporaire des identifiants. Les builds BO/App/Front interviennent uniquement en finalisation, après les migrations. Ce contrat est en chantier et ne doit pas être considéré comme livré avant les tests et CT.
