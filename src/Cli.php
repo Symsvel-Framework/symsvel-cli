@@ -320,16 +320,8 @@ HELP;
             throw new \RuntimeException('Setup non initialisé. Exécutez create-project auparavant.');
         }
         $state = json_decode((string) file_get_contents($stateFile), true, 512, JSON_THROW_ON_ERROR);
-        if (($state['schema'] ?? null) !== 1 || !in_array($state['status'] ?? null, ['pending', 'running'], true)) {
+        if (($state['schema'] ?? null) !== 1 || !in_array($state['status'] ?? null, ['pending', 'running', 'database_ready'], true)) {
             throw new \RuntimeException('Setup déjà terminé ou état invalide.');
-        }
-        $tokenFile = $workspace.'/.symsvel/setup-token';
-        if (!is_file($tokenFile) || is_link($tokenFile)) {
-            throw new \RuntimeException('Jeton de setup introuvable.');
-        }
-        $token = trim((string) file_get_contents($tokenFile));
-        if ($token === '') {
-            throw new \RuntimeException('Jeton de setup vide.');
         }
         if (!is_file($backend.'/public/index.php')) {
             throw new \RuntimeException('Front controller Symfony introuvable.');
@@ -346,7 +338,6 @@ HELP;
         $port = (int) $matches[1];
         $url = 'http://127.0.0.1:'.$port.'/setup';
         echo '[symsvel] Wizard local : '.$url.PHP_EOL;
-        echo '[symsvel] Jeton à saisir dans le formulaire : '.$token.PHP_EOL;
         echo '[symsvel] Serveur accessible uniquement sur cette machine. Ctrl+C pour arrêter.'.PHP_EOL;
         $process = proc_open(
             [PHP_BINARY, '-S', '127.0.0.1:'.$port, '-t', 'public', 'public/index.php'],

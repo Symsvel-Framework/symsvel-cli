@@ -46,6 +46,15 @@ $explicitSync = strpos($cliSource, "self::run([PHP_BINARY, 'scripts/symsvel-modu
 $deferRestore = strpos($cliSource, "putenv('SYMSVEL_DEFER_BUILDS');", $deferStart ?: 0);
 expect($deferStart !== false && $explicitSync !== false && $deferRestore !== false && $deferStart < $explicitSync && $explicitSync < $deferRestore, 'Module sync must run before deferred-build environment is restored');
 
+// The local Setup wizard no longer uses a token and must be resumable
+// after the database phase, including when a static build failed.
+$setupStart = strpos($cliSource, 'private static function setup(');
+$setupEnd = strpos($cliSource, 'private static function openBrowser(', $setupStart ?: 0);
+expect($setupStart !== false && $setupEnd !== false, 'Setup entry point missing');
+$setupSource = substr($cliSource, $setupStart, $setupEnd - $setupStart);
+expect(!str_contains($setupSource, 'setup-token') && !str_contains($setupSource, 'Jeton'), 'Obsolete Setup token must not be required or displayed');
+expect(str_contains($setupSource, "'database_ready'"), 'Setup wizard must resume after database phase');
+
 $temporary = sys_get_temp_dir().'/symsvel-cli-smoke-'.bin2hex(random_bytes(6));
 mkdir($temporary, 0775, true);
 
