@@ -1,6 +1,6 @@
 # SymSvel CLI
 
-Point d'entrée autonome des projets SymSvel (PHP 8.4+, Composer, Git ; Node.js/npm pour les interfaces SvelteKit). La CLI orchestre les commandes utilisateur ; **le Tooling conserve les moteurs d'installation, synchronisation et transaction**. Cette branche de travail est coordonnée avec Tooling PR #62 et doit encore être validée sur XT.
+Point d'entrée autonome des projets SymSvel (PHP 8.4+, Composer, Git ; Node.js/npm pour les interfaces SvelteKit). La CLI orchestre les commandes utilisateur ; **le Tooling conserve les moteurs d'installation, synchronisation et transaction**. Le Setup PostgreSQL en deux phases est coordonné avec Tooling #63, Back #40 et Admins #4 ; la validation finale nécessite les crash-tests XT après merge.
 
 ## Installation locale de la CLI
 
@@ -54,9 +54,9 @@ Le Setup Wizard configure le projet localement après l'installation des composa
 - [Fichiers et registres](docs/reference/fichiers.md)
 - [Provenance et crash-tests XT](docs/reference/provenance.md)
 
-Avant de considérer les PR CLI #10 et Tooling #62 terminées : tests, CI, vérification documentaire et crash-tests XT sur Mac, notamment Setup Wizard, modules natifs, synchronisation, migrations, mises à jour, retrait et rollbacks. **Ne pas merger uniquement sur une CI verte.**
+Avant de considérer les PR CLI #10 et Tooling #62 terminées : tests, CI, vérification documentaire et crash-tests XT sur Mac, notamment Setup Wizard, modules natifs, synchronisation, migrations, mises à jour, retrait et rollbacks. **Une CI verte ne remplace pas les crash-tests XT après merge sur main/dev-main.**
 
 
-### Contrat de setup en cours de réalisation
+### Setup PostgreSQL en deux phases
 
-`create-project` prépare les sources et modules sans build Svelte. Le Setup s'effectue ensuite en deux écrans : configuration projet/domaine/BDD (PostgreSQL, MySQL, MariaDB ou SQLite), création de la base et migrations ; puis saisie et création directe du premier administrateur sans stockage temporaire des identifiants. Les builds BO/App/Front interviennent uniquement en finalisation, après les migrations. Ce contrat est en chantier et ne doit pas être considéré comme livré avant les tests et CT.
+`create-project` prépare les sources et modules sans build Svelte. Le Setup local s'effectue ensuite en deux écrans : configuration projet, domaine local et connexion **PostgreSQL** (détection de version serveur), création de la base et migrations Composer ; puis création directe du premier administrateur par le module Admins, sans staging de mot de passe. Les builds statiques BO/App/Front interviennent uniquement après les migrations et la vérification de l'administrateur. La finalisation est relançable après un échec. MySQL, MariaDB et SQLite seront traités dans un chantier multibase distinct après les CT PostgreSQL. i18n et 2FA sont également différés.
