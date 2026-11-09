@@ -55,6 +55,9 @@ $setupSource = substr($cliSource, $setupStart, $setupEnd - $setupStart);
 expect(!str_contains($setupSource, 'setup-token') && !str_contains($setupSource, 'Jeton'), 'Obsolete Setup token must not be required or displayed');
 expect(str_contains($setupSource, "'database_ready'"), 'Setup wizard must resume after database phase');
 
+expect(str_contains($setupSource, 'SYMSVEL_SETUP_NPM'), 'Wizard must propagate resolved npm to PHP server');
+expect(str_contains($setupSource, '$environment,'), 'Wizard must pass explicit process environment');
+
 $temporary = sys_get_temp_dir().'/symsvel-cli-smoke-'.bin2hex(random_bytes(6));
 mkdir($temporary, 0775, true);
 
