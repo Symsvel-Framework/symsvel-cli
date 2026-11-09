@@ -68,3 +68,5 @@ Pendant `create-project`, la synchronisation explicite `scripts/symsvel-module-s
 ### Wizard local sans jeton
 
 `symsvel create-project` ouvre le Setup sur `127.0.0.1` sans jeton ni saisie de secret temporaire. `symsvel setup` reprend également un état `database_ready` après une erreur de finalisation, sans réinstaller ni relancer les migrations. Le formulaire est réservé au loopback ; le contrôle CSRF des actions POST reste assuré côté Back. Le code CLI ne doit ni lire `.symsvel/setup-token` ni afficher de jeton.
+
+Lors du lancement du Wizard, la CLI résout `npm` depuis son `PATH` et transmet `SYMSVEL_SETUP_NPM` ainsi que l'environnement au serveur PHP local. Aucun chemin Node/Homebrew n'est codé en dur.

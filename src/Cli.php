@@ -339,11 +339,29 @@ HELP;
         $url = 'http://127.0.0.1:'.$port.'/setup';
         echo '[symsvel] Wizard local : '.$url.PHP_EOL;
         echo '[symsvel] Serveur accessible uniquement sur cette machine. Ctrl+C pour arrêter.'.PHP_EOL;
+        // Capture the CLI-resolved npm executable before the PHP web server starts.
+        // The server environment can have a different PATH from the interactive shell.
+        $npm = null;
+        foreach (explode(PATH_SEPARATOR, (string) getenv('PATH')) as $directory) {
+            $candidate = rtrim($directory, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.(PHP_OS_FAMILY === 'Windows' ? 'npm.cmd' : 'npm');
+            if ($directory !== '' && is_file($candidate) && is_executable($candidate)) {
+                $npm = $candidate;
+                break;
+            }
+        }
+        $environment = getenv();
+        if (!is_array($environment)) {
+            $environment = [];
+        }
+        if ($npm !== null) {
+            $environment['SYMSVEL_SETUP_NPM'] = $npm;
+        }
         $process = proc_open(
             [PHP_BINARY, '-S', '127.0.0.1:'.$port, '-t', 'public', 'public/index.php'],
             [0 => STDIN, 1 => STDOUT, 2 => STDERR],
             $pipes,
             $backend,
+            $environment,
         );
         if (!is_resource($process)) {
             throw new \RuntimeException('Démarrage du serveur local impossible.');
