@@ -70,3 +70,7 @@ Pendant `create-project`, la synchronisation explicite `scripts/symsvel-module-s
 `symsvel create-project` ouvre le Setup sur `127.0.0.1` sans jeton ni saisie de secret temporaire. `symsvel setup` reprend également un état `database_ready` après une erreur de finalisation, sans réinstaller ni relancer les migrations. Le formulaire est réservé au loopback ; le contrôle CSRF des actions POST reste assuré côté Back. Le code CLI ne doit ni lire `.symsvel/setup-token` ni afficher de jeton.
 
 Lors du lancement du Wizard, la CLI résout `npm` depuis son `PATH` et transmet `SYMSVEL_SETUP_NPM` ainsi que l'environnement au serveur PHP local. Aucun chemin Node/Homebrew n'est codé en dur.
+
+### Diagnostic temporaire npm du Setup (09/11/2026)
+
+Pendant le crash-test local, le parcours Setup ajoute des traces dans `.symsvel/npm-trace.log` à la racine du workspace. Les étapes CLI, contrôleur et Tooling journalisent l'horodatage, le PID, le chemin npm et le PATH utiles au diagnostic ; Tooling journalise également la commande de build choisie et son code de sortie. Aucun secret ni environnement complet n'est journalisé. Ces traces sont temporaires, réservées au diagnostic local et doivent être retirées après identification de la cause. Ne pas publier ce journal.
