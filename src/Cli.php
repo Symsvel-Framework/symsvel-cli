@@ -156,6 +156,9 @@ HELP;
             try {
                 self::run([PHP_BINARY, 'bin/console', 'symsvel:install', '--components='.$components], $backend);
                 self::installNativeModules($backend, $dev, $components);
+                // Composer's post-update hook and this explicit synchronization
+                // both use the same deferred-build contract during bootstrap.
+                self::run([PHP_BINARY, 'scripts/symsvel-module-sync.php'], $backend);
             } finally {
                 if ($previousDefer === false) {
                     putenv('SYMSVEL_DEFER_BUILDS');
@@ -163,7 +166,6 @@ HELP;
                     putenv('SYMSVEL_DEFER_BUILDS='.$previousDefer);
                 }
             }
-            self::run([PHP_BINARY, 'scripts/symsvel-module-sync.php'], $backend);
         } catch (\Throwable $e) {
             throw new \RuntimeException('Création partielle : '.$e->getMessage().'. Projet conservé dans '.$backend);
         }
