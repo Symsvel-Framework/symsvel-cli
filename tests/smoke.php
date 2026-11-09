@@ -42,7 +42,7 @@ function removeTree(string $path): void
 // SYMSVEL_DEFER_BUILDS scope, otherwise it starts all Svelte builds before setup.
 $cliSource = (string) file_get_contents(dirname(__DIR__).'/src/Cli.php');
 $deferStart = strpos($cliSource, "putenv('SYMSVEL_DEFER_BUILDS=1');");
-$explicitSync = strpos($cliSource, "self::run([PHP_BINARY, 'scripts/symsvel-module-sync.php'], $backend);", $deferStart ?: 0);
+$explicitSync = strpos($cliSource, "self::run([PHP_BINARY, 'scripts/symsvel-module-sync.php'], \$backend);", $deferStart ?: 0);
 $deferRestore = strpos($cliSource, "putenv('SYMSVEL_DEFER_BUILDS');", $deferStart ?: 0);
 expect($deferStart !== false && $explicitSync !== false && $deferRestore !== false && $deferStart < $explicitSync && $explicitSync < $deferRestore, 'Module sync must run before deferred-build environment is restored');
 
