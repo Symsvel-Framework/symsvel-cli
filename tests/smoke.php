@@ -38,6 +38,14 @@ function removeTree(string $path): void
     rmdir($path);
 }
 
+// Regression: the explicit post-install module sync must remain inside the
+// SYMSVEL_DEFER_BUILDS scope, otherwise it starts all Svelte builds before setup.
+$cliSource = (string) file_get_contents(dirname(__DIR__).'/src/Cli.php');
+$deferStart = strpos($cliSource, "putenv('SYMSVEL_DEFER_BUILDS=1');");
+$explicitSync = strpos($cliSource, "self::run([PHP_BINARY, 'scripts/symsvel-module-sync.php'], \$backend);", $deferStart ?: 0);
+$deferRestore = strpos($cliSource, "putenv('SYMSVEL_DEFER_BUILDS');", $deferStart ?: 0);
+expect($deferStart !== false && $explicitSync !== false && $deferRestore !== false && $deferStart < $explicitSync && $explicitSync < $deferRestore, 'Module sync must run before deferred-build environment is restored');
+
 $temporary = sys_get_temp_dir().'/symsvel-cli-smoke-'.bin2hex(random_bytes(6));
 mkdir($temporary, 0775, true);
 

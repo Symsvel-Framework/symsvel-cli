@@ -60,3 +60,7 @@ Avant de considérer les PR CLI #10 et Tooling #62 terminées : tests, CI, véri
 ### Setup PostgreSQL en deux phases
 
 `create-project` prépare les sources et modules sans build Svelte. Le Setup local s'effectue ensuite en deux écrans : configuration projet, domaine local et connexion **PostgreSQL** (détection de version serveur), création de la base et migrations Composer ; puis création directe du premier administrateur par le module Admins, sans staging de mot de passe. Les builds statiques BO/App/Front interviennent uniquement après les migrations et la vérification de l'administrateur. La finalisation est relançable après un échec. MySQL, MariaDB et SQLite seront traités dans un chantier multibase distinct après les CT PostgreSQL. i18n et 2FA sont également différés.
+
+### Correctif CT XT : synchronisation et builds
+
+Pendant `create-project`, la synchronisation explicite `scripts/symsvel-module-sync.php` reste sous `SYMSVEL_DEFER_BUILDS=1`, comme les opérations Composer et l'installation des modules natifs. Le hook Composer du backend peut lancer des builds hors de ce contexte ; la CLI ne doit donc jamais restaurer la variable avant la dernière synchronisation initiale. Les builds initiaux sont réservés à `symsvel:setup:complete`. Régression couverte dans `tests/smoke.php` ; validation finale par CT XT.
