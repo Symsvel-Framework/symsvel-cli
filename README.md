@@ -78,3 +78,7 @@ Pendant le crash-test local, le parcours Setup ajoute des traces dans `.symsvel/
 ### Runner CI local (10/11/2026)
 
 Le job `cli` de `.github/workflows/ci.yml` cible le runner self-hosted d'organisation avec les labels `self-hosted`, `linux`, `ARM64`, `symsvel`. Le runner `symsvel-runner-01` est hébergé localement dans Docker Desktop (Linux ARM64, PHP 8.4). Les jobs ne s'exécutent que lorsque le Mac et Docker sont disponibles. Ce changement est un essai initial : valider le job GitHub Actions et les crash-tests locaux avant de généraliser aux autres dépôts. Le runner est réservé aux workflows de dépôts de confiance ; ne pas exécuter de contributions non fiables sur ce runner persistant. Pour revenir temporairement aux runners GitHub, remplacer `runs-on` par `ubuntu-latest`.
+
+### Vérification PHP sur runner Docker (10/11/2026)
+
+L'image locale `symsvel-runner:latest` fournit PHP 8.4 dans `/usr/local`. `shivammathur/setup-php@v2` échoue dans ce conteneur Debian 12, car il vise un environnement d'installation différent. La CI CLI utilise désormais le PHP préinstallé avec une vérification explicite de la version 8.4, puis conserve les lint et smoke tests existants. La modification ne s'applique pas aux runners GitHub hébergés : avant un retour à `ubuntu-latest`, rétablir également `setup-php`. Validation finale conditionnée à une CI verte sur le runner local.
