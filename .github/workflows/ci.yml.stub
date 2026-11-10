@@ -1,0 +1,16 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  cli:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+      - run: php -l bin/symsvel
+      - run: php -l src/Cli.php
+      - run: php -l tests/smoke.php
+      - run: php tests/smoke.php
