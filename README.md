@@ -74,3 +74,7 @@ Lors du lancement du Wizard, la CLI résout `npm` depuis son `PATH` et transmet 
 ### Diagnostic temporaire npm du Setup (09/11/2026)
 
 Pendant le crash-test local, le parcours Setup ajoute des traces dans `.symsvel/npm-trace.log` à la racine du workspace. Les étapes CLI, contrôleur et Tooling journalisent l'horodatage, le PID, le chemin npm et le PATH utiles au diagnostic ; Tooling journalise également la commande de build choisie et son code de sortie. Aucun secret ni environnement complet n'est journalisé. Ces traces sont temporaires, réservées au diagnostic local et doivent être retirées après identification de la cause. Ne pas publier ce journal.
+
+### Runner CI local (10/11/2026)
+
+Le job `cli` de `.github/workflows/ci.yml` cible le runner self-hosted d'organisation avec les labels `self-hosted`, `linux`, `ARM64`, `symsvel`. Le runner `symsvel-runner-01` est hébergé localement dans Docker Desktop (Linux ARM64, PHP 8.4). Les jobs ne s'exécutent que lorsque le Mac et Docker sont disponibles. Ce changement est un essai initial : valider le job GitHub Actions et les crash-tests locaux avant de généraliser aux autres dépôts. Le runner est réservé aux workflows de dépôts de confiance ; ne pas exécuter de contributions non fiables sur ce runner persistant. Pour revenir temporairement aux runners GitHub, remplacer `runs-on` par `ubuntu-latest`.
