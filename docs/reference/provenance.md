@@ -8,7 +8,7 @@
 
 Le canal par défaut est `stable`. L'option `symsvel create-project --dev`, réservée aux mainteneurs et aux projets de crash-test, enregistre `dev`. Cette configuration est indépendante de Symfony `APP_ENV`, et ne doit jamais être écrasée automatiquement. Le résolveur Tooling lit le même contrat.
 
-**État du chantier (07/11/2026) :** l'écriture et la validation stricte du canal sont implémentées. La CLI applique la contrainte `dev-main` par défaut aux packages SymSvel sans contrainte explicite ; Tooling prépare les dépôts VCS des modules en canal `dev` après checkpoint. Les tests CI sont verts sur les têtes des PR #10 et #62 avant cette mise à jour documentaire. Le parcours réseau GitHub/Satis et le Setup Wizard complet restent à éprouver sur XT. Aucun changement de canal ou migration automatique d'anciens projets n'est prévu.
+**État vérifié au 11/11/2026 :** l'écriture et la validation stricte du canal sont implémentées. La CLI applique `dev-main` par défaut aux packages SymSvel sans contrainte explicite ; Tooling prépare les dépôts VCS des modules en canal `dev` après checkpoint. Les CT XT ont validé l'installation et les migrations natives PostgreSQL/MySQL. La maintenance sélective réelle, les rollbacks et le canal `stable` après publication doivent être validés séparément. Aucun changement de canal ou migration automatique d'anciens projets n'est prévu.
 
 Toute commande de maintenance refuse un canal absent, invalide ou symbolique avant de déléguer au Tooling. Aucun canal par défaut n'est inféré pour un projet déjà créé.
 
@@ -30,11 +30,11 @@ Une option Composer telle que `--no-interaction` après le nom du package ne con
 
 ## Bootstrap des modules natifs
 
-La CLI ne déclare plus elle-même les dépôts VCS des modules pendant le bootstrap initial. Elle valide le manifeste et délègue le `require` des modules au lanceur transactionnel de Tooling, qui prépare les sources `dev` après son checkpoint Composer. Ainsi, un échec de résolution peut restaurer `composer.json` via le rollback existant. Le test smoke vérifie l'absence de mutation des repositories par la CLI. Le parcours réel XT reste à valider.
+La CLI ne déclare plus elle-même les dépôts VCS des modules pendant le bootstrap initial. Elle valide le manifeste et délègue le `require` des modules au lanceur transactionnel de Tooling, qui prépare les sources `dev` après son checkpoint Composer. Ainsi, un échec de résolution peut restaurer `composer.json` via le rollback existant. Le test smoke vérifie l'absence de mutation des repositories par la CLI. Le parcours de maintenance réel XT reste à valider.
 
 ## Protocole de crash-test XT (à exécuter après CI verte)
 
-**Précondition :** conserver les PR CLI #10 et Tooling #62 en draft ; utiliser un répertoire XT neuf, jamais un projet contenant des données à préserver. La création démarre le Setup Wizard interactif. Aucun contournement de XT ni modification manuelle du canal.
+**Précondition :** utiliser un répertoire XT neuf, jamais un projet contenant des données à préserver. La création démarre le Setup Wizard interactif. Aucun contournement de XT ni modification manuelle du canal.
 
 1. Dans le répertoire parent de XT, exécuter `symsvel doctor`, puis `symsvel create-project --components=all --dev` depuis un répertoire de travail neuf. Vérifier que `backend/.symsvel/project.json` contient `schema: 1` et `channel: dev` ; vérifier l'installation de BO, App, Front et des modules natifs attendus.
 2. Finaliser le Setup Wizard avec une base de test dédiée, puis vérifier routes, migrations, accès BO/App, synchronisation des modules et builds.
@@ -44,4 +44,4 @@ La CLI ne déclare plus elle-même les dépôts VCS des modules pendant le boots
 6. Tester séparément le canal `stable` dans un **autre projet neuf**, sans `--dev`. Ce scénario dépend de la publication effective des versions dans Satis : ne pas interpréter une release absente comme une réussite du résolveur.
 7. Pour le rollback, injecter un échec **uniquement sur une copie jetable** du projet XT et comparer `composer.json`, `composer.lock`, `vendor`, les fichiers de composants et la base avant/après. Ne jamais provoquer cet échec sur Choralys ou un projet réel.
 
-**Critères de clôture :** CI vertes des deux PR, installation et maintenance réelles en `dev` et `stable` (si releases disponibles), migrations, rollback, builds, tests de routes et interfaces, documentation vérifiée. Toute anomalie reste ouverte dans la PR correspondante ; aucun merge anticipé.
+**Critères de clôture avant release :** CI verte, installation et maintenance réelles en `dev` et `stable` (si releases disponibles), migrations, rollback, builds, tests de routes et interfaces, documentation vérifiée. Le CT d'installation PostgreSQL/MySQL du 11/11/2026 ne valide pas à lui seul les opérations de maintenance et rollback. Toute anomalie doit être résolue avant publication.
