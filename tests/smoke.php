@@ -107,6 +107,23 @@ PHP);
 <?php
 file_put_contents(__DIR__.'/../delegation.json', json_encode(array_slice($argv, 1), JSON_THROW_ON_ERROR));
 PHP);
+    // Module migrations must preserve the original cwd when delegating to Tooling.
+    mkdir($project.'/modules/catalogue/back/src/Entity', 0775, true);
+    [$status, , $error] = executeCli(['module:migrate'], $project.'/modules/catalogue/back/src/Entity');
+    expect($status === 0, 'Module migration cwd delegation failed: '.$error);
+    $delegatedMigration = json_decode((string) file_get_contents($backend.'/delegation.json'), true, 512, JSON_THROW_ON_ERROR);
+    expect(in_array('symsvel:module:migrate', $delegatedMigration, true), 'Module migration must delegate to Tooling');
+    expect(in_array('--workspace='.$project, $delegatedMigration, true), 'Module migration workspace mismatch');
+    expect(in_array('--cwd='.$project.'/modules/catalogue/back/src/Entity', $delegatedMigration, true), 'Module migration original cwd mismatch');
+
+    [$status, , $error] = executeCli(['module:migrate', 'OtherModule'], $project);
+    expect($status === 0, 'Explicit module migration delegation failed: '.$error);
+    $delegatedMigration = json_decode((string) file_get_contents($backend.'/delegation.json'), true, 512, JSON_THROW_ON_ERROR);
+    expect(in_array('OtherModule', $delegatedMigration, true), 'Explicit module argument not forwarded');
+
+    [$status, , $error] = executeCli(['module:migrate', '--workspace='], $project);
+    expect($status !== 0 && str_contains($error, 'workspace vide'), 'Empty workspace option must fail');
+
     [$status, , $error] = executeCli(['make:module', 'catalogue', '--vendor=acme', '--scopes=bo,app'], $project);
     expect($status === 0, 'Project Tooling delegation failed: '.$error);
     $delegated = json_decode((string) file_get_contents($backend.'/delegation.json'), true, 512, JSON_THROW_ON_ERROR);
