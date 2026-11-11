@@ -508,7 +508,10 @@ HELP;
         if ($cwd === false) {
             throw new \RuntimeException('Répertoire courant invalide.');
         }
-        $workspace = $workspaceOption === null ? self::findFrameworkWorkspace($cwd) : realpath($workspaceOption);
+        $backendFromCwd = self::findBackend($cwd);
+        $workspace = $workspaceOption !== null
+            ? realpath($workspaceOption)
+            : ($backendFromCwd !== null ? dirname($backendFromCwd) : self::findFrameworkWorkspace($cwd));
         if ($workspace === false) {
             throw new \RuntimeException('Workspace SymSvel introuvable.');
         }
