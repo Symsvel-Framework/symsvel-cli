@@ -18,6 +18,7 @@ final class Cli
                 'setup' => self::setup($args),
                 'setup:finalize' => self::finalizeSetup($args),
                 'make:module' => self::makeModule($args),
+                'module:migrate' => self::moduleMigrate($args),
                 'update' => self::update($args),
                 'require', 'remove' => self::composer($command, $args),
                 default => throw new \RuntimeException("Commande inconnue : $command"),
@@ -39,6 +40,7 @@ Usage:
   symsvel setup:finalize
   symsvel create-project --components=all|bo|app|front [--directory=backend] [--dev]
   symsvel make:module <name> [--scopes=back,bo,app,front] [--vendor=symsvel-framework] [--workspace=path]
+  symsvel module:migrate [MonModule] [--workspace=path]
   symsvel require <package> [constraint] [--bootstrap]
   symsvel update [bo|app|front|package]
   symsvel remove <package>
@@ -477,6 +479,52 @@ HELP;
         }
 
         throw new \RuntimeException('Aucun générateur de module disponible dans ce workspace.');
+    }
+
+    /**
+     * Only route the request. Module ownership, ORM discovery and generation
+     * belong to Tooling; the original working directory is passed explicitly.
+     */
+    private static function moduleMigrate(array $args): int
+    {
+        $module = null;
+        $workspaceOption = null;
+        foreach ($args as $arg) {
+            if (str_starts_with($arg, '--workspace=')) {
+                if ($workspaceOption !== null) {
+                    throw new \RuntimeException('Option --workspace dupliquée.');
+                }
+                $workspaceOption = substr($arg, strlen('--workspace='));
+            } elseif ($module === null && $arg !== '' && !str_starts_with($arg, '-')) {
+                $module = $arg;
+            } else {
+                throw new \RuntimeException('Argument inconnu : '.$arg);
+            }
+        }
+        if ($workspaceOption === '') {
+            throw new \RuntimeException('Valeur --workspace vide.');
+        }
+        $cwd = realpath(getcwd());
+        if ($cwd === false) {
+            throw new \RuntimeException('Répertoire courant invalide.');
+        }
+        $backendFromCwd = self::findBackend($cwd);
+        $workspace = $workspaceOption !== null
+            ? realpath($workspaceOption)
+            : ($backendFromCwd !== null ? dirname($backendFromCwd) : self::findFrameworkWorkspace($cwd));
+        if ($workspace === false) {
+            throw new \RuntimeException('Workspace SymSvel introuvable.');
+        }
+        $backend = self::findBackend($workspace);
+        if ($backend === null || dirname($backend) !== $workspace) {
+            throw new \RuntimeException('Backend SymSvel introuvable dans le workspace.');
+        }
+        $command = [PHP_BINARY, 'bin/console', 'symsvel:module:migrate', '--workspace='.$workspace, '--cwd='.$cwd, '--no-interaction'];
+        if ($module !== null) {
+            $command[] = $module;
+        }
+        self::run($command, $backend);
+        return 0;
     }
 
     private static function findFrameworkWorkspace(string $directory): ?string
