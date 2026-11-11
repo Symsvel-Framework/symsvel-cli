@@ -8,7 +8,7 @@ cd modules/mon-module
 symsvel module:migrate
 ```
 
-Cette commande **n'est pas encore disponible** sur la branche : la présente documentation prépare le raccordement à la commande Tooling en cours de développement.
+La CLI reconnaît désormais cette commande et délègue à `symsvel:module:migrate` côté Tooling, en transmettant le workspace et le répertoire courant d'origine. **Le point d'entrée Tooling et le générateur Doctrine ne sont pas encore disponibles** : le parcours complet reste donc non fonctionnel.
 
 ## Contrat validé
 
