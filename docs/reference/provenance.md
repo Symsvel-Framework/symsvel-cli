@@ -8,9 +8,13 @@
 
 Le canal par défaut est `stable`. L'option `symsvel create-project --dev`, réservée aux mainteneurs et aux projets de crash-test, enregistre `dev`. Cette configuration est indépendante de Symfony `APP_ENV`, et ne doit jamais être écrasée automatiquement. Le résolveur Tooling lit le même contrat.
 
-**État vérifié au 11/11/2026 :** l'écriture et la validation stricte du canal sont implémentées. La CLI applique `dev-main` par défaut aux packages SymSvel sans contrainte explicite ; Tooling prépare les dépôts VCS des modules en canal `dev` après checkpoint. Les CT XT ont validé l'installation et les migrations natives PostgreSQL/MySQL. La maintenance sélective réelle, les rollbacks et le canal `stable` après publication doivent être validés séparément. Aucun changement de canal ou migration automatique d'anciens projets n'est prévu.
+**État vérifié au 11/11/2026 :** l'écriture et la validation stricte du canal sont implémentées. La création `--dev` installe Back, Core et Tooling depuis `dev-dev` (branche Git `dev`). La CLI applique encore `dev-main` par défaut aux modules SymSvel sans contrainte explicite ; Tooling prépare les dépôts VCS des modules en canal `dev` après checkpoint. Les CT XT ont validé l'installation et les migrations natives PostgreSQL/MySQL. La maintenance sélective réelle, les rollbacks et le canal `stable` après publication doivent être validés séparément. Aucun changement de canal ou migration automatique d'anciens projets n'est prévu.
 
 Toute commande de maintenance refuse un canal absent, invalide ou symbolique avant de déléguer au Tooling. Aucun canal par défaut n'est inféré pour un projet déjà créé.
+
+## Branches de développement
+
+La branche Git `dev` correspond à la contrainte Composer `dev-dev` pour Back, Core et Tooling. Les modules natifs restent sur Git `main`, soit `dev-main` côté Composer, jusqu'à décision de migration propre aux modules. Le canal `stable` continue d'utiliser les contraintes de publication normales. Les interfaces BO/App/Front possèdent également une branche Git `dev` ; leur sélection effective lors de l'installation dépend du Tooling et doit être vérifiée sur XT.
 
 ## Installation des packages
 
