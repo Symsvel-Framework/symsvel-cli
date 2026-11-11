@@ -41,6 +41,10 @@ function removeTree(string $path): void
 // Regression: the explicit post-install module sync must remain inside the
 // SYMSVEL_DEFER_BUILDS scope, otherwise it starts all Svelte builds before setup.
 $cliSource = (string) file_get_contents(dirname(__DIR__).'/src/Cli.php');
+expect(str_contains($cliSource, "\$create[] = 'dev-dev';"), 'Dev project skeleton must resolve Git dev branch');
+expect(str_contains($cliSource, 'symsvel-framework/tooling:dev-dev'), 'Dev Tooling must resolve Git dev branch');
+expect(str_contains($cliSource, 'symsvel-framework/core:dev-dev'), 'Dev Core must resolve Git dev branch');
+expect(str_contains($cliSource, "\$package.':dev-main'"), 'Native modules must remain on Git main branch');
 $deferStart = strpos($cliSource, "putenv('SYMSVEL_DEFER_BUILDS=1');");
 $explicitSync = strpos($cliSource, "self::run([PHP_BINARY, 'scripts/symsvel-module-sync.php'], \$backend);", $deferStart ?: 0);
 $deferRestore = strpos($cliSource, "putenv('SYMSVEL_DEFER_BUILDS');", $deferStart ?: 0);
