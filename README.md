@@ -1,6 +1,6 @@
 # SymSvel CLI
 
-Point d'entrée autonome des projets SymSvel (PHP 8.4+, Composer, Git ; Node.js/npm pour les interfaces SvelteKit). La CLI orchestre les commandes utilisateur ; **le Tooling conserve les moteurs d'installation, synchronisation et transaction**. Le Setup PostgreSQL en deux phases est coordonné avec Tooling #63, Back #40 et Admins #4 ; la validation finale nécessite les crash-tests XT après merge.
+Point d'entrée autonome des projets SymSvel (PHP 8.4+, Composer, Git ; Node.js/npm pour les interfaces SvelteKit). La CLI orchestre les commandes utilisateur ; **le Tooling conserve les moteurs d'installation, synchronisation et transaction**. Le Setup Wizard local en deux phases est coordonné entre CLI, Tooling, Back et modules natifs. Les crash-tests XT du 11/11/2026 ont validé le parcours d'installation et les migrations natives sous PostgreSQL et MySQL ; les autres parcours de maintenance et les autres SGBD restent à valider séparément.
 
 ## Installation locale de la CLI
 
@@ -36,7 +36,7 @@ symsvel update bo
 
 Les opérations de packages utilisent le **lanceur transactionnel Composer du Tooling**, sans réimplémentation dans la CLI. Les commandes Composer natives ne sont pas interceptées. `symsvel update bo|app|front` utilise le cycle de vie natif des interfaces : analyse des fichiers gérés, préservation des modifications locales non conflictuelles, refus des collisions. Ce parcours est distinct de `symsvel update <package>` et de la commande Symfony globale `symsvel:update`.
 
-Le canal `dev` ne garantit pas à lui seul que GitHub/Satis est accessible : les tests d'intégration réseau réels font partie des crash-tests XT. Les restaurations BDD ne sont garanties que lorsque le checkpoint est effectivement disponible, notamment avec PostgreSQL ou SQLite. Voir [la documentation transactionnelle du Tooling](https://github.com/Symsvel-Framework/symsvel-tooling/blob/feat/60-update-init-simplification/docs/composer-transactions.md).
+Le canal `dev` ne garantit pas à lui seul que GitHub/Satis est accessible : les tests d'intégration réseau réels font partie des crash-tests XT. Les restaurations BDD ne sont garanties que lorsque le checkpoint est effectivement disponible, notamment avec PostgreSQL ou SQLite. Voir [la documentation transactionnelle du Tooling](https://github.com/Symsvel-Framework/symsvel-tooling/blob/main/docs/composer-transactions.md).
 
 ## Setup et génération de modules
 
@@ -54,16 +54,16 @@ Le Setup Wizard configure le projet localement après l'installation des composa
 - [Fichiers et registres](docs/reference/fichiers.md)
 - [Provenance et crash-tests XT](docs/reference/provenance.md)
 
-Avant de considérer les PR CLI #10 et Tooling #62 terminées : tests, CI, vérification documentaire et crash-tests XT sur Mac, notamment Setup Wizard, modules natifs, synchronisation, migrations, mises à jour, retrait et rollbacks. **Une CI verte ne remplace pas les crash-tests XT après merge sur main/dev-main.**
+Avant toute release CLI : tests, CI, documentation et crash-tests XT des parcours concernés, notamment maintenance sélective, retrait et rollbacks. **Une CI verte ne remplace pas les crash-tests XT après merge sur main/dev-main.**
 
 
-### Setup PostgreSQL en deux phases
+### Setup local en deux phases
 
-`create-project` prépare les sources et modules sans build Svelte. Le Setup local s'effectue ensuite en deux écrans : configuration projet, domaine local et connexion **PostgreSQL** (détection de version serveur), création de la base et migrations Composer ; puis création directe du premier administrateur par le module Admins, sans staging de mot de passe. Les builds statiques BO/App/Front interviennent uniquement après les migrations et la vérification de l'administrateur. La finalisation est relançable après un échec. MySQL, MariaDB et SQLite seront traités dans un chantier multibase distinct après les CT PostgreSQL. i18n et 2FA sont également différés.
+`create-project` prépare les sources et modules sans build Svelte. Le Setup local s'effectue ensuite en deux écrans : configuration projet, domaine local et connexion au **SGBD choisi** (détection de version serveur lorsque disponible), création de la base et migrations Composer ; puis création directe du premier administrateur par le module Admins, sans staging de mot de passe. Les builds statiques BO/App/Front interviennent uniquement après les migrations et la vérification de l'administrateur. La finalisation est relançable après un échec. Les CT PostgreSQL et MySQL sont validés au 11/11/2026 pour l'installation et les migrations natives. MariaDB et SQLite ne sont pas encore validés par ces CT. i18n et 2FA restent des chantiers distincts.
 
 ### Correctif CT XT : synchronisation et builds
 
-Pendant `create-project`, la synchronisation explicite `scripts/symsvel-module-sync.php` reste sous `SYMSVEL_DEFER_BUILDS=1`, comme les opérations Composer et l'installation des modules natifs. Le hook Composer du backend peut lancer des builds hors de ce contexte ; la CLI ne doit donc jamais restaurer la variable avant la dernière synchronisation initiale. Les builds initiaux sont réservés à `symsvel:setup:complete`. Régression couverte dans `tests/smoke.php` ; validation finale par CT XT.
+Pendant `create-project`, la synchronisation explicite `scripts/symsvel-module-sync.php` reste sous `SYMSVEL_DEFER_BUILDS=1`, comme les opérations Composer et l'installation des modules natifs. Le hook Composer du backend peut lancer des builds hors de ce contexte ; la CLI ne doit donc jamais restaurer la variable avant la dernière synchronisation initiale. Les builds initiaux sont réservés à `symsvel:setup:complete`. Régression couverte dans `tests/smoke.php` ; parcours initial validé sur XT pour PostgreSQL et MySQL ; les régressions futures nécessitent de nouveaux CT.
 
 ### Wizard local sans jeton
 
@@ -73,7 +73,7 @@ Lors du lancement du Wizard, la CLI résout `npm` depuis son `PATH` et transmet 
 
 ### Diagnostic temporaire npm du Setup (09/11/2026)
 
-Pendant le crash-test local, le parcours Setup ajoute des traces dans `.symsvel/npm-trace.log` à la racine du workspace. Les étapes CLI, contrôleur et Tooling journalisent l'horodatage, le PID, le chemin npm et le PATH utiles au diagnostic ; Tooling journalise également la commande de build choisie et son code de sortie. Aucun secret ni environnement complet n'est journalisé. Ces traces sont temporaires, réservées au diagnostic local et doivent être retirées après identification de la cause. Ne pas publier ce journal.
+Pendant le crash-test local, le parcours Setup ajoute des traces dans `.symsvel/npm-trace.log` à la racine du workspace. Les étapes CLI, contrôleur et Tooling journalisent l'horodatage, le PID, le chemin npm et le PATH utiles au diagnostic ; Tooling journalise également la commande de build choisie et son code de sortie. Aucun secret ni environnement complet n'est journalisé. Ces traces sont temporaires, réservées au diagnostic local ; leur retrait constitue un nettoyage à vérifier avant release. Ne pas publier ce journal.
 
 ### CI GitHub et runner Docker local (10/11/2026)
 
