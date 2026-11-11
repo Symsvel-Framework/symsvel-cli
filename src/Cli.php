@@ -129,7 +129,7 @@ HELP;
         }
         array_push($create, 'symsvel-framework/back', $directory);
         if ($dev) {
-            $create[] = 'dev-main';
+            $create[] = 'dev-dev';
         }
         self::run($create, getcwd());
         $backend = realpath($directory);
@@ -146,8 +146,8 @@ HELP;
                 // development branches before booting Symfony in the dev environment.
                 self::run(['composer', 'config', 'repositories.symsvel-tooling-dev', 'vcs', 'https://github.com/Symsvel-Framework/symsvel-tooling.git'], $backend);
                 self::run(['composer', 'config', 'repositories.symsvel-core-dev', 'vcs', 'https://github.com/Symsvel-Framework/symsvel-core.git'], $backend);
-                self::run(['composer', 'require', '--dev', '--with-all-dependencies', '--no-cache', 'symsvel-framework/tooling:dev-main'], $backend);
-                self::run(['composer', 'require', '--with-all-dependencies', '--no-cache', 'symsvel-framework/core:dev-main'], $backend);
+                self::run(['composer', 'require', '--dev', '--with-all-dependencies', '--no-cache', 'symsvel-framework/tooling:dev-dev'], $backend);
+                self::run(['composer', 'require', '--with-all-dependencies', '--no-cache', 'symsvel-framework/core:dev-dev'], $backend);
                 if (!is_file($backend.'/vendor/symsvel-framework/tooling/bin/symsvel-composer-transaction.php')) {
                     throw new \RuntimeException('Tooling development checkout missing Composer transaction launcher.');
                 }
