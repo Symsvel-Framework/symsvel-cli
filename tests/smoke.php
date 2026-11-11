@@ -115,6 +115,19 @@ PHP);
     expect(in_array('symsvel:module:migrate', $delegatedMigration, true), 'Module migration must delegate to Tooling');
     expect(in_array('--workspace='.$project, $delegatedMigration, true), 'Module migration workspace mismatch');
     expect(in_array('--cwd='.$project.'/modules/catalogue/back/src/Entity', $delegatedMigration, true), 'Module migration original cwd mismatch');
+    expect($delegatedMigration === [
+        'symsvel:module:migrate',
+        '--workspace='.$project,
+        '--cwd='.$project.'/modules/catalogue/back/src/Entity',
+        '--no-interaction',
+    ], 'Module migration delegation must preserve exact Tooling contract');
+
+    [$status, , $error] = executeCli(['module:migrate', '--workspace='.$project, '--workspace='.$project], $project);
+    expect($status !== 0 && str_contains($error, 'dupliquée'), 'Duplicate workspace option must fail before delegation');
+
+    [$status, , $error] = executeCli(['module:migrate', 'Catalogue', 'Unexpected'], $project);
+    expect($status !== 0 && str_contains($error, 'Argument inconnu'), 'Extra module argument must fail before delegation');
+
 
     [$status, , $error] = executeCli(['module:migrate', 'OtherModule'], $project);
     expect($status === 0, 'Explicit module migration delegation failed: '.$error);
