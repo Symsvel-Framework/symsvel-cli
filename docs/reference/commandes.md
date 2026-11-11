@@ -11,6 +11,7 @@ La CLI est le point d'entrée pour créer et maintenir un projet. Cette référe
 | `symsvel setup` | Reprendre le Setup Wizard local |
 | `symsvel setup:finalize` | Finaliser l'initialisation |
 | `symsvel make:module <name>` | Générer un module normalisé |
+| `symsvel module:migrate [MonModule]` | Déléguer au Tooling la génération d'une migration pour un module (générateur Tooling en cours) |
 | `symsvel require <package> [constraint]` | Installer un package |
 | `symsvel update [bo|app|front|package]` | Mettre à jour sélectivement |
 | `symsvel remove <package>` | Désinstaller un package |
@@ -22,6 +23,8 @@ symsvel doctor
 symsvel create-project --components=all
 symsvel create-project --components=app --directory=backend --dev
 symsvel make:module catalogue --scopes=back,bo,app --vendor=symsvel-framework
+# Après intégration du générateur Tooling :
+symsvel module:migrate Catalogue
 symsvel require symsvel-framework/module-exemple dev-main
 symsvel update symsvel-framework/module-exemple
 ```
