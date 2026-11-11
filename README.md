@@ -31,7 +31,7 @@ symsvel create-project --components=all --dev
 
 `--components=bo|app|front|all` installe le BO et les interfaces supplémentaires demandées. Symfony est installé dans `backend/` ; `bo/`, `app/` et `front/` sont ses dossiers frères. La création délègue l'installation au Tooling et démarre le Setup Wizard local. Une création partielle n'est pas effacée automatiquement.
 
-Le canal est choisi **à la création** et écrit dans `backend/.symsvel/project.json` : `stable` par défaut, `dev` avec `--dev`. Il est indépendant de `APP_ENV`. Les commandes de maintenance exigent une provenance valide et ne déduisent pas automatiquement un canal pour un ancien projet. Le canal `dev` sélectionne par défaut `dev-main` pour les packages SymSvel sans contrainte explicite ; une contrainte fournie par l'utilisateur est conservée. Voir [le contrat de provenance et le protocole XT](docs/reference/provenance.md).
+Le canal est choisi **à la création** et écrit dans `backend/.symsvel/project.json` : `stable` par défaut, `dev` avec `--dev`. Il est indépendant de `APP_ENV`. Les commandes de maintenance exigent une provenance valide et ne déduisent pas automatiquement un canal pour un ancien projet. Le canal `dev` récupère `dev-dev` pour Back, Core et Tooling lors de la création ; les modules natifs restent sur `dev-main` (branche Git `main`). Pour les packages SymSvel ajoutés sans contrainte explicite, la maintenance conserve provisoirement la résolution `dev-main` ; une contrainte fournie par l'utilisateur est conservée. Voir [le contrat de provenance et le protocole XT](docs/reference/provenance.md).
 
 ## Maintenance sélective
 
@@ -62,7 +62,7 @@ Le Setup Wizard configure le projet localement après l'installation des composa
 - [Fichiers et registres](docs/reference/fichiers.md)
 - [Provenance et crash-tests XT](docs/reference/provenance.md)
 
-Avant toute release CLI : tests, CI, documentation et crash-tests XT des parcours concernés, notamment maintenance sélective, retrait et rollbacks. **Une CI verte ne remplace pas les crash-tests XT après merge sur main/dev-main.**
+Avant toute release CLI : tests, CI, documentation et crash-tests XT des parcours concernés, notamment maintenance sélective, retrait et rollbacks. **Une CI verte ne remplace pas les crash-tests XT après merge sur les branches concernées.**
 
 
 ### Setup local en deux phases
