@@ -299,7 +299,7 @@ HELP;
             if (!is_file($launcher)) {
                 throw new \RuntimeException('Lanceur transactionnel introuvable pour les modules natifs.');
             }
-        $constraints = array_map(static fn (string $package): string => $dev ? $package.':dev-main' : $package, $modules);
+        $constraints = array_map(static fn (string $package): string => $dev ? $package.':dev-dev' : $package, $modules);
         self::run(array_merge([PHP_BINARY, $launcher, 'require'], $constraints, ['--bootstrap']), $backend);
     }
 
@@ -585,7 +585,7 @@ HELP;
             throw new \RuntimeException('--dev est réservé à create-project ; le canal du projet est déjà enregistré.');
         }
         if ($channel === 'dev' && $command === 'require') {
-            // Only SymSvel packages follow the framework's dev-main channel.
+            // Only SymSvel packages follow the framework's dev branch channel.
             // Third-party packages retain their normal Composer resolution.
             $package = $args[0] ?? '';
             $explicitConstraint = isset($args[1]) && is_string($args[1]) && !str_starts_with($args[1], '-');
