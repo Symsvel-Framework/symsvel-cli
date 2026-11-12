@@ -44,7 +44,7 @@ $cliSource = (string) file_get_contents(dirname(__DIR__).'/src/Cli.php');
 expect(str_contains($cliSource, "\$create[] = 'dev-dev';"), 'Dev project skeleton must resolve Git dev branch');
 expect(str_contains($cliSource, 'symsvel-framework/tooling:dev-dev'), 'Dev Tooling must resolve Git dev branch');
 expect(str_contains($cliSource, 'symsvel-framework/core:dev-dev'), 'Dev Core must resolve Git dev branch');
-expect(str_contains($cliSource, "\$package.':dev-main'"), 'Native modules must remain on Git main branch');
+expect(str_contains($cliSource, "\$package.':dev-dev'"), 'Native modules must resolve Git dev branch');
 $deferStart = strpos($cliSource, "putenv('SYMSVEL_DEFER_BUILDS=1');");
 $explicitSync = strpos($cliSource, "self::run([PHP_BINARY, 'scripts/symsvel-module-sync.php'], \$backend);", $deferStart ?: 0);
 $deferRestore = strpos($cliSource, "putenv('SYMSVEL_DEFER_BUILDS');", $deferStart ?: 0);
@@ -214,7 +214,7 @@ PHP);
     $beforeBootstrapRepositories = (string) file_get_contents($backend.'/composer.json');
     $installNative->invoke(null, $backend, true, 'bo');
     $invocation = json_decode((string) file_get_contents($backend.'/native-invocation.json'), true, 512, JSON_THROW_ON_ERROR);
-    expect($invocation === ['require', 'symsvel-framework/module-roles:dev-main', '--bootstrap'], 'Native dev bootstrap invocation mismatch');
+    expect($invocation === ['require', 'symsvel-framework/module-roles:dev-dev', '--bootstrap'], 'Native dev bootstrap invocation mismatch');
     expect(file_get_contents($backend.'/composer.json') === $beforeBootstrapRepositories, 'CLI bootstrap must not mutate Composer repositories outside Tooling transaction');
     unlink($backend.'/native-invocation.json');
     // All native modules must be sent in one Composer transaction.
@@ -224,7 +224,7 @@ PHP);
     ], JSON_THROW_ON_ERROR));
     $installNative->invoke(null, $backend, true, 'bo');
     $invocation = json_decode((string) file_get_contents($backend.'/native-invocation.json'), true, 512, JSON_THROW_ON_ERROR);
-    expect($invocation === ['require', 'symsvel-framework/module-admins:dev-main', 'symsvel-framework/module-roles:dev-main', '--bootstrap'], 'Native batch bootstrap invocation mismatch');
+    expect($invocation === ['require', 'symsvel-framework/module-admins:dev-dev', 'symsvel-framework/module-roles:dev-dev', '--bootstrap'], 'Native batch bootstrap invocation mismatch');
     unlink($backend.'/native-invocation.json');
     // App-specific modules must not be installed when App is absent.
     file_put_contents($manifest, json_encode([
