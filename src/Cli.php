@@ -18,6 +18,7 @@ final class Cli
                 'setup' => self::setup($args),
                 'setup:finalize' => self::finalizeSetup($args),
                 'make:module' => self::makeModule($args),
+                'module:migrate' => self::moduleMigrate($args),
                 'update' => self::update($args),
                 'require', 'remove' => self::composer($command, $args),
                 default => throw new \RuntimeException("Commande inconnue : $command"),
@@ -39,6 +40,7 @@ Usage:
   symsvel setup:finalize
   symsvel create-project --components=all|bo|app|front [--directory=backend] [--dev]
   symsvel make:module <name> [--scopes=back,bo,app,front] [--vendor=symsvel-framework] [--workspace=path]
+  symsvel module:migrate [MonModule] [--workspace=path]
   symsvel require <package> [constraint] [--bootstrap]
   symsvel update [bo|app|front|package]
   symsvel remove <package>
@@ -127,7 +129,7 @@ HELP;
         }
         array_push($create, 'symsvel-framework/back', $directory);
         if ($dev) {
-            $create[] = 'dev-main';
+            $create[] = 'dev-dev';
         }
         self::run($create, getcwd());
         $backend = realpath($directory);
@@ -144,8 +146,8 @@ HELP;
                 // development branches before booting Symfony in the dev environment.
                 self::run(['composer', 'config', 'repositories.symsvel-tooling-dev', 'vcs', 'https://github.com/Symsvel-Framework/symsvel-tooling.git'], $backend);
                 self::run(['composer', 'config', 'repositories.symsvel-core-dev', 'vcs', 'https://github.com/Symsvel-Framework/symsvel-core.git'], $backend);
-                self::run(['composer', 'require', '--dev', '--with-all-dependencies', '--no-cache', 'symsvel-framework/tooling:dev-main'], $backend);
-                self::run(['composer', 'require', '--with-all-dependencies', '--no-cache', 'symsvel-framework/core:dev-main'], $backend);
+                self::run(['composer', 'require', '--dev', '--with-all-dependencies', '--no-cache', 'symsvel-framework/tooling:dev-dev'], $backend);
+                self::run(['composer', 'require', '--with-all-dependencies', '--no-cache', 'symsvel-framework/core:dev-dev'], $backend);
                 if (!is_file($backend.'/vendor/symsvel-framework/tooling/bin/symsvel-composer-transaction.php')) {
                     throw new \RuntimeException('Tooling development checkout missing Composer transaction launcher.');
                 }
@@ -297,7 +299,7 @@ HELP;
             if (!is_file($launcher)) {
                 throw new \RuntimeException('Lanceur transactionnel introuvable pour les modules natifs.');
             }
-        $constraints = array_map(static fn (string $package): string => $dev ? $package.':dev-main' : $package, $modules);
+        $constraints = array_map(static fn (string $package): string => $dev ? $package.':dev-dev' : $package, $modules);
         self::run(array_merge([PHP_BINARY, $launcher, 'require'], $constraints, ['--bootstrap']), $backend);
     }
 
@@ -479,6 +481,52 @@ HELP;
         throw new \RuntimeException('Aucun générateur de module disponible dans ce workspace.');
     }
 
+    /**
+     * Only route the request. Module ownership, ORM discovery and generation
+     * belong to Tooling; the original working directory is passed explicitly.
+     */
+    private static function moduleMigrate(array $args): int
+    {
+        $module = null;
+        $workspaceOption = null;
+        foreach ($args as $arg) {
+            if (str_starts_with($arg, '--workspace=')) {
+                if ($workspaceOption !== null) {
+                    throw new \RuntimeException('Option --workspace dupliquée.');
+                }
+                $workspaceOption = substr($arg, strlen('--workspace='));
+            } elseif ($module === null && $arg !== '' && !str_starts_with($arg, '-')) {
+                $module = $arg;
+            } else {
+                throw new \RuntimeException('Argument inconnu : '.$arg);
+            }
+        }
+        if ($workspaceOption === '') {
+            throw new \RuntimeException('Valeur --workspace vide.');
+        }
+        $cwd = realpath(getcwd());
+        if ($cwd === false) {
+            throw new \RuntimeException('Répertoire courant invalide.');
+        }
+        $backendFromCwd = self::findBackend($cwd);
+        $workspace = $workspaceOption !== null
+            ? realpath($workspaceOption)
+            : ($backendFromCwd !== null ? dirname($backendFromCwd) : self::findFrameworkWorkspace($cwd));
+        if ($workspace === false) {
+            throw new \RuntimeException('Workspace SymSvel introuvable.');
+        }
+        $backend = self::findBackend($workspace);
+        if ($backend === null || dirname($backend) !== $workspace) {
+            throw new \RuntimeException('Backend SymSvel introuvable dans le workspace.');
+        }
+        $command = [PHP_BINARY, 'bin/console', 'symsvel:module:migrate', '--workspace='.$workspace, '--cwd='.$cwd, '--no-interaction'];
+        if ($module !== null) {
+            $command[] = $module;
+        }
+        self::run($command, $backend);
+        return 0;
+    }
+
     private static function findFrameworkWorkspace(string $directory): ?string
     {
         $current = realpath($directory);
@@ -537,7 +585,7 @@ HELP;
             throw new \RuntimeException('--dev est réservé à create-project ; le canal du projet est déjà enregistré.');
         }
         if ($channel === 'dev' && $command === 'require') {
-            // Only SymSvel packages follow the framework's dev-main channel.
+            // Only SymSvel packages follow the framework's dev branch channel.
             // Third-party packages retain their normal Composer resolution.
             $package = $args[0] ?? '';
             $explicitConstraint = isset($args[1]) && is_string($args[1]) && !str_starts_with($args[1], '-');

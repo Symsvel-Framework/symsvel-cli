@@ -41,6 +41,10 @@ function removeTree(string $path): void
 // Regression: the explicit post-install module sync must remain inside the
 // SYMSVEL_DEFER_BUILDS scope, otherwise it starts all Svelte builds before setup.
 $cliSource = (string) file_get_contents(dirname(__DIR__).'/src/Cli.php');
+expect(str_contains($cliSource, "\$create[] = 'dev-dev';"), 'Dev project skeleton must resolve Git dev branch');
+expect(str_contains($cliSource, 'symsvel-framework/tooling:dev-dev'), 'Dev Tooling must resolve Git dev branch');
+expect(str_contains($cliSource, 'symsvel-framework/core:dev-dev'), 'Dev Core must resolve Git dev branch');
+expect(str_contains($cliSource, "\$package.':dev-dev'"), 'Native modules must resolve Git dev branch');
 $deferStart = strpos($cliSource, "putenv('SYMSVEL_DEFER_BUILDS=1');");
 $explicitSync = strpos($cliSource, "self::run([PHP_BINARY, 'scripts/symsvel-module-sync.php'], \$backend);", $deferStart ?: 0);
 $deferRestore = strpos($cliSource, "putenv('SYMSVEL_DEFER_BUILDS');", $deferStart ?: 0);
@@ -107,6 +111,36 @@ PHP);
 <?php
 file_put_contents(__DIR__.'/../delegation.json', json_encode(array_slice($argv, 1), JSON_THROW_ON_ERROR));
 PHP);
+    // Module migrations must preserve the original cwd when delegating to Tooling.
+    mkdir($project.'/modules/catalogue/back/src/Entity', 0775, true);
+    [$status, , $error] = executeCli(['module:migrate'], $project.'/modules/catalogue/back/src/Entity');
+    expect($status === 0, 'Module migration cwd delegation failed: '.$error);
+    $delegatedMigration = json_decode((string) file_get_contents($backend.'/delegation.json'), true, 512, JSON_THROW_ON_ERROR);
+    expect(in_array('symsvel:module:migrate', $delegatedMigration, true), 'Module migration must delegate to Tooling');
+    expect(in_array('--workspace='.$project, $delegatedMigration, true), 'Module migration workspace mismatch');
+    expect(in_array('--cwd='.$project.'/modules/catalogue/back/src/Entity', $delegatedMigration, true), 'Module migration original cwd mismatch');
+    expect($delegatedMigration === [
+        'symsvel:module:migrate',
+        '--workspace='.$project,
+        '--cwd='.$project.'/modules/catalogue/back/src/Entity',
+        '--no-interaction',
+    ], 'Module migration delegation must preserve exact Tooling contract');
+
+    [$status, , $error] = executeCli(['module:migrate', '--workspace='.$project, '--workspace='.$project], $project);
+    expect($status !== 0 && str_contains($error, 'dupliquée'), 'Duplicate workspace option must fail before delegation');
+
+    [$status, , $error] = executeCli(['module:migrate', 'Catalogue', 'Unexpected'], $project);
+    expect($status !== 0 && str_contains($error, 'Argument inconnu'), 'Extra module argument must fail before delegation');
+
+
+    [$status, , $error] = executeCli(['module:migrate', 'OtherModule'], $project);
+    expect($status === 0, 'Explicit module migration delegation failed: '.$error);
+    $delegatedMigration = json_decode((string) file_get_contents($backend.'/delegation.json'), true, 512, JSON_THROW_ON_ERROR);
+    expect(in_array('OtherModule', $delegatedMigration, true), 'Explicit module argument not forwarded');
+
+    [$status, , $error] = executeCli(['module:migrate', '--workspace='], $project);
+    expect($status !== 0 && str_contains($error, 'workspace vide'), 'Empty workspace option must fail');
+
     [$status, , $error] = executeCli(['make:module', 'catalogue', '--vendor=acme', '--scopes=bo,app'], $project);
     expect($status === 0, 'Project Tooling delegation failed: '.$error);
     $delegated = json_decode((string) file_get_contents($backend.'/delegation.json'), true, 512, JSON_THROW_ON_ERROR);
@@ -180,7 +214,7 @@ PHP);
     $beforeBootstrapRepositories = (string) file_get_contents($backend.'/composer.json');
     $installNative->invoke(null, $backend, true, 'bo');
     $invocation = json_decode((string) file_get_contents($backend.'/native-invocation.json'), true, 512, JSON_THROW_ON_ERROR);
-    expect($invocation === ['require', 'symsvel-framework/module-roles:dev-main', '--bootstrap'], 'Native dev bootstrap invocation mismatch');
+    expect($invocation === ['require', 'symsvel-framework/module-roles:dev-dev', '--bootstrap'], 'Native dev bootstrap invocation mismatch');
     expect(file_get_contents($backend.'/composer.json') === $beforeBootstrapRepositories, 'CLI bootstrap must not mutate Composer repositories outside Tooling transaction');
     unlink($backend.'/native-invocation.json');
     // All native modules must be sent in one Composer transaction.
@@ -190,7 +224,7 @@ PHP);
     ], JSON_THROW_ON_ERROR));
     $installNative->invoke(null, $backend, true, 'bo');
     $invocation = json_decode((string) file_get_contents($backend.'/native-invocation.json'), true, 512, JSON_THROW_ON_ERROR);
-    expect($invocation === ['require', 'symsvel-framework/module-admins:dev-main', 'symsvel-framework/module-roles:dev-main', '--bootstrap'], 'Native batch bootstrap invocation mismatch');
+    expect($invocation === ['require', 'symsvel-framework/module-admins:dev-dev', 'symsvel-framework/module-roles:dev-dev', '--bootstrap'], 'Native batch bootstrap invocation mismatch');
     unlink($backend.'/native-invocation.json');
     // App-specific modules must not be installed when App is absent.
     file_put_contents($manifest, json_encode([
