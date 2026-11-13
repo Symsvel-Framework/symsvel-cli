@@ -36,3 +36,7 @@ Les commandes avancées de synchronisation, migration et récupération appartie
 ### Génération des migrations de module (PR draft)
 
 `symsvel module:migrate [MonModule] [--workspace=chemin]` délègue à la commande Tooling `symsvel:module:migrate`. La CLI transmet le répertoire courant initial via `--cwd`, indispensable à la détection du module depuis un sous-dossier. Elle n'embarque aucune logique Doctrine. La génération actuelle ne couvre que les créations simples de tables ; les changements de tables existantes et les clés étrangères restent volontairement refusés. Le parcours complet doit être crash-testé avec un EntityManager réel avant de considérer cette fonctionnalité comme terminée.
+
+### Génération de module dans le workspace Framework
+
+À la racine du checkout contenant `symsvel-cli/` et `symsvel-tooling/`, `symsvel make:module mail --scopes=back,bo` détecte automatiquement le Maker de `symsvel-tooling/src/Module/ModuleMaker.php`. Le Maker de Tooling crée le dépôt frère `symsvel-module-mail/` à la racine du workspace Framework. `--workspace=/chemin/absolu/vers/SymSvel` reste disponible depuis un autre répertoire. La génération depuis un projet client continue de déléguer au Tooling installé dans son backend et conserve son organisation propre.
