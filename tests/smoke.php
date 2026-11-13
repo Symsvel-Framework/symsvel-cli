@@ -108,7 +108,7 @@ PHP);
     [$status, $out, $error] = executeCli(['make:module', 'mail', '--scopes=back,bo'], $sibling);
     expect($status === 0, 'Sibling workspace ModuleMaker invocation failed: '.$error);
     expect(str_contains($out, $sibling.'/modules/mail'), 'Sibling workspace destination mismatch');
-    [$status, $out, $error] = executeCli(['make:module', 'mail', '--workspace='.$sibling], $temporary);
+    [$status, $out, $error] = executeCli(['make:module', 'mail-two', '--workspace='.$sibling], $temporary);
     expect($status === 0, 'Explicit sibling workspace resolution failed: '.$error);
 
     // Project workspace: the CLI delegates to the installed Symfony command.
