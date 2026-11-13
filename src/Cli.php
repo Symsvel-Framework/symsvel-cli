@@ -458,7 +458,9 @@ HELP;
 
         // Framework workspaces own their generator, even when a backend is present.
         // A backend in the workspace must not redirect module creation to Symfony.
-        $makerSource = $workspace.'/framework/tools/src/Module/ModuleMaker.php';
+        $makerSource = is_file($workspace.'/symsvel-tooling/src/Module/ModuleMaker.php')
+            ? $workspace.'/symsvel-tooling/src/Module/ModuleMaker.php'
+            : $workspace.'/framework/tools/src/Module/ModuleMaker.php';
         if (is_file($makerSource)) {
             require_once $makerSource;
             $path = (new \SymSvel\Tooling\Module\ModuleMaker())->create($workspace, $name, $vendor, $scopes);
@@ -531,7 +533,8 @@ HELP;
     {
         $current = realpath($directory);
         while ($current !== false) {
-            if (is_file($current.'/framework/tools/src/Module/ModuleMaker.php')) {
+            if ((is_dir($current.'/symsvel-cli') && is_file($current.'/symsvel-tooling/src/Module/ModuleMaker.php'))
+                || is_file($current.'/framework/tools/src/Module/ModuleMaker.php')) {
                 return $current;
             }
             $parent = dirname($current);
