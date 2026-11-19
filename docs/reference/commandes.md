@@ -46,3 +46,8 @@ l'exécutable npm a été trouvé. Le diagnostic temporaire qui écrivait le
 pas conserver les chemins ni variables d'environnement du mainteneur
 lors d'une installation normale. La reprise du Wizard et l'exécution
 de npm ne changent pas. Test smoke et CI obligatoires, puis CT XT.
+
+Le test smoke interdit la persistance de la trace temporaire et du
+`PATH` sérialisé. La consultation en mémoire de `PATH` pour localiser
+`npm` reste nécessaire au fonctionnement du Wizard et n'est pas
+considérée comme une fuite tant qu'aucun journal n'est créé.
