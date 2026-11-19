@@ -324,6 +324,14 @@ PHP);
         '--no-interaction',
     ], 'Component update must delegate to Tooling');
 
+    // Documentation is an explicit maintenance command, never triggered by Setup.
+    [$status, , $error] = executeCli(['documentation:sync'], $project);
+    expect($status === 0, 'Documentation maintenance delegation failed: '.$error);
+    $delegated = json_decode((string) file_get_contents($backend.'/delegation.json'), true, 512, JSON_THROW_ON_ERROR);
+    expect($delegated === ['symsvel:documentation:sync', '--no-interaction'], 'Documentation must delegate solely to Tooling');
+    [$status, , $error] = executeCli(['documentation:sync', '--unexpected'], $project);
+    expect($status !== 0 && str_contains($error, 'ne prend pas'), 'Documentation must reject unapproved options');
+
     // --workspace must work even when invoked outside the selected project.
     unlink($backend.'/delegation.json');
     [$status, , $error] = executeCli(['make:module', 'explicit', '--workspace='.$project], $temporary);

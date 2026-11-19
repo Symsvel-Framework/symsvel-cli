@@ -10,6 +10,7 @@ La CLI est le point d'entrée pour créer et maintenir un projet. Cette référe
 | `symsvel create-project --components=all|bo|app|front` | Créer un projet et lancer le Setup |
 | `symsvel setup` | Reprendre le Setup Wizard local |
 | `symsvel setup:finalize` | Finaliser l'initialisation |
+| `symsvel documentation:sync` | Assemblage documentaire privé manuel (Tooling), hors Setup et sans MkDocs |
 | `symsvel make:module <name>` | Générer un module normalisé |
 | `symsvel module:migrate [MonModule]` | Déléguer au Tooling la génération d'une migration pour un module (générateur Tooling en cours) |
 | `symsvel require <package> [constraint]` | Installer un package |
@@ -51,3 +52,16 @@ Le test smoke interdit la persistance de la trace temporaire et du
 `PATH` sérialisé. La consultation en mémoire de `PATH` pour localiser
 `npm` reste nécessaire au fonctionnement du Wizard et n'est pas
 considérée comme une fuite tant qu'aucun journal n'est créé.
+
+### Documentation native accessible au BO (19/11/2026)
+
+La CLI expose `symsvel documentation:sync` et délègue uniquement à la
+commande interne `symsvel:documentation:sync` de Tooling. L'opération
+doit être lancée volontairement après l'installation ou la modification
+des modules : elle rassemble leurs documents déclarés dans
+`backend/var/symsvel/documentation.json`, hors espace public.
+Le Setup, l'installation initiale, le build Svelte et `symsvel update`
+n'invoquent jamais implicitement ce traitement. Ni Python, ni pip,
+ni MkDocs ne sont installés. Le BO consomme le corpus uniquement par
+un endpoint authentifié du module propriétaire. Le test smoke vérifie
+le routage CLI sans générer de documentation pendant l'installation.
