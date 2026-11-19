@@ -61,6 +61,7 @@ expect(str_contains($setupSource, "'database_ready'"), 'Setup wizard must resume
 
 expect(str_contains($setupSource, 'SYMSVEL_SETUP_NPM'), 'Wizard must propagate resolved npm to PHP server');
 expect(str_contains($setupSource, '$environment,'), 'Wizard must pass explicit process environment');
+expect(!str_contains($setupSource, 'npm-trace.log') && !str_contains($setupSource, 'getenv(\'PATH\')'), 'Setup must not persist local environment traces');
 
 $temporary = sys_get_temp_dir().'/symsvel-cli-smoke-'.bin2hex(random_bytes(6));
 mkdir($temporary, 0775, true);

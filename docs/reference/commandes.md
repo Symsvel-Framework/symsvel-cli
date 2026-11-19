@@ -36,3 +36,13 @@ Les commandes avancées de synchronisation, migration et récupération appartie
 ### Génération des migrations de module (PR draft)
 
 `symsvel module:migrate [MonModule] [--workspace=chemin]` délègue à la commande Tooling `symsvel:module:migrate`. La CLI transmet le répertoire courant initial via `--cwd`, indispensable à la détection du module depuis un sous-dossier. Elle n'embarque aucune logique Doctrine. La génération actuelle ne couvre que les créations simples de tables ; les changements de tables existantes et les clés étrangères restent volontairement refusés. Le parcours complet doit être crash-testé avec un EntityManager réel avant de considérer cette fonctionnalité comme terminée.
+
+### Confidentialité du Setup (19/11/2026)
+
+Le lancement du serveur local relaie au processus PHP uniquement la
+configuration d'environnement nécessaire et `SYMSVEL_SETUP_NPM` lorsque
+l'exécutable npm a été trouvé. Le diagnostic temporaire qui écrivait le
+`PATH` local dans `.symsvel/npm-trace.log` a été retiré : la CLI ne doit
+pas conserver les chemins ni variables d'environnement du mainteneur
+lors d'une installation normale. La reprise du Wizard et l'exécution
+de npm ne changent pas. Test smoke et CI obligatoires, puis CT XT.

@@ -358,12 +358,6 @@ HELP;
         if ($npm !== null) {
             $environment['SYMSVEL_SETUP_NPM'] = $npm;
         }
-        // Temporary setup diagnostic: never log the full environment or credentials.
-        @file_put_contents(dirname($backend).'/.symsvel/npm-trace.log',
-            gmdate('c').' [cli pid='.getmypid().'] npm='.var_export($npm, true)
-            .' PATH='.var_export(getenv('PATH'), true)
-            .' forwarded='.var_export($environment['SYMSVEL_SETUP_NPM'] ?? null, true)."\n",
-            FILE_APPEND | LOCK_EX);
         $process = proc_open(
             [PHP_BINARY, '-S', '127.0.0.1:'.$port, '-t', 'public', 'public/index.php'],
             [0 => STDIN, 1 => STDOUT, 2 => STDERR],
