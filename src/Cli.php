@@ -58,7 +58,7 @@ HELP;
 
     private static function version(): int
     {
-        echo "SymSvel CLI 0.1.0-dev".PHP_EOL;
+        echo "SymSvel CLI 0.2.0".PHP_EOL;
         return 0;
     }
 
