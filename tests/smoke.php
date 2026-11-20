@@ -101,6 +101,17 @@ PHP);
     $invocation = json_decode((string) file_get_contents($framework.'/modules/documents/invocation.json'), true, 512, JSON_THROW_ON_ERROR);
     expect($invocation === ['vendor' => 'acme', 'scopes' => 'back,front'], 'Framework arguments mismatch');
 
+    // Current framework layout: independent sibling Git repositories.
+    $sibling = $temporary.'/sibling-workspace';
+    mkdir($sibling.'/symsvel-cli', 0775, true);
+    mkdir($sibling.'/symsvel-tooling/src/Module', 0775, true);
+    copy($toolingModule.'/ModuleMaker.php', $sibling.'/symsvel-tooling/src/Module/ModuleMaker.php');
+    [$status, $out, $error] = executeCli(['make:module', 'mail', '--scopes=back,bo'], $sibling);
+    expect($status === 0, 'Sibling workspace ModuleMaker invocation failed: '.$error);
+    expect(str_contains($out, $sibling.'/modules/mail'), 'Sibling workspace destination mismatch');
+    [$status, $out, $error] = executeCli(['make:module', 'mail-two', '--workspace='.$sibling], $temporary);
+    expect($status === 0, 'Explicit sibling workspace resolution failed: '.$error);
+
     // Project workspace: the CLI delegates to the installed Symfony command.
     $project = $temporary.'/customer-project';
     $backend = $project.'/backend';
