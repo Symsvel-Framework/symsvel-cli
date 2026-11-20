@@ -61,6 +61,7 @@ expect(str_contains($setupSource, "'database_ready'"), 'Setup wizard must resume
 
 expect(str_contains($setupSource, 'SYMSVEL_SETUP_NPM'), 'Wizard must propagate resolved npm to PHP server');
 expect(str_contains($setupSource, '$environment,'), 'Wizard must pass explicit process environment');
+expect(!str_contains($setupSource, 'npm-trace.log') && !str_contains($setupSource, "var_export(getenv('PATH')"), 'Setup must not persist local environment traces');
 
 $temporary = sys_get_temp_dir().'/symsvel-cli-smoke-'.bin2hex(random_bytes(6));
 mkdir($temporary, 0775, true);
@@ -333,6 +334,14 @@ PHP);
         'app',
         '--no-interaction',
     ], 'Component update must delegate to Tooling');
+
+    // Documentation is an explicit maintenance command, never triggered by Setup.
+    [$status, , $error] = executeCli(['documentation:sync'], $project);
+    expect($status === 0, 'Documentation maintenance delegation failed: '.$error);
+    $delegated = json_decode((string) file_get_contents($backend.'/delegation.json'), true, 512, JSON_THROW_ON_ERROR);
+    expect($delegated === ['symsvel:documentation:sync', '--no-interaction'], 'Documentation must delegate solely to Tooling');
+    [$status, , $error] = executeCli(['documentation:sync', '--unexpected'], $project);
+    expect($status !== 0 && str_contains($error, 'ne prend pas'), 'Documentation must reject unapproved options');
 
     // --workspace must work even when invoked outside the selected project.
     unlink($backend.'/delegation.json');

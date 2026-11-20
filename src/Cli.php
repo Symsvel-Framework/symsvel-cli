@@ -17,6 +17,7 @@ final class Cli
                 'create-project' => self::createProject($args),
                 'setup' => self::setup($args),
                 'setup:finalize' => self::finalizeSetup($args),
+                'documentation:sync' => self::syncDocumentation($args),
                 'make:module' => self::makeModule($args),
                 'module:migrate' => self::moduleMigrate($args),
                 'update' => self::update($args),
@@ -38,6 +39,7 @@ Usage:
   symsvel doctor
   symsvel setup               # Lance le Wizard local sous l'utilisateur CLI
   symsvel setup:finalize
+  symsvel documentation:sync   # Maintenance manuelle, jamais pendant Setup
   symsvel create-project --components=all|bo|app|front [--directory=backend] [--dev]
   symsvel make:module <name> [--scopes=back,bo,app,front] [--vendor=symsvel-framework] [--workspace=path]
   symsvel module:migrate [MonModule] [--workspace=path]
@@ -358,12 +360,6 @@ HELP;
         if ($npm !== null) {
             $environment['SYMSVEL_SETUP_NPM'] = $npm;
         }
-        // Temporary setup diagnostic: never log the full environment or credentials.
-        @file_put_contents(dirname($backend).'/.symsvel/npm-trace.log',
-            gmdate('c').' [cli pid='.getmypid().'] npm='.var_export($npm, true)
-            .' PATH='.var_export(getenv('PATH'), true)
-            .' forwarded='.var_export($environment['SYMSVEL_SETUP_NPM'] ?? null, true)."\n",
-            FILE_APPEND | LOCK_EX);
         $process = proc_open(
             [PHP_BINARY, '-S', '127.0.0.1:'.$port, '-t', 'public', 'public/index.php'],
             [0 => STDIN, 1 => STDOUT, 2 => STDERR],
@@ -411,6 +407,21 @@ HELP;
             throw new \RuntimeException('Exécutez setup:finalize depuis un projet SymSvel.');
         }
         self::run([PHP_BINARY, 'bin/console', 'symsvel:setup:finalize', '--no-interaction'], $backend);
+        return 0;
+    }
+
+    /** A single CLI entry point; Tooling assembles the private documentation. */
+    private static function syncDocumentation(array $args): int
+    {
+        if ($args !== []) {
+            throw new \RuntimeException('documentation:sync ne prend pas d’arguments.');
+        }
+        $backend = self::findBackend(getcwd());
+        if ($backend === null) {
+            throw new \RuntimeException('Exécutez documentation:sync depuis un projet SymSvel.');
+        }
+        self::readProjectChannel($backend);
+        self::run([PHP_BINARY, 'bin/console', 'symsvel:documentation:sync', '--no-interaction'], $backend);
         return 0;
     }
 
