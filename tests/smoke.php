@@ -345,6 +345,13 @@ PHP);
     expect($delegated === ['symsvel:documentation:sync', '--no-interaction'], 'Documentation must delegate solely to Tooling');
     [$status, , $error] = executeCli(['documentation:sync', '--unexpected'], $project);
     expect($status !== 0 && str_contains($error, 'ne prend pas'), 'Documentation must reject unapproved options');
+    // The local developer site is a separate explicit operation.
+    [$status, , $error] = executeCli(['documentation:build-dev'], $project);
+    expect($status === 0, 'Developer documentation build delegation failed: '.$error);
+    $delegated = json_decode((string) file_get_contents($backend.'/delegation.json'), true, 512, JSON_THROW_ON_ERROR);
+    expect($delegated === ['symsvel:documentation:build-dev', '--no-interaction'], 'Developer documentation must delegate to Tooling');
+    [$status, , $error] = executeCli(['documentation:build-dev', '--unexpected'], $project);
+    expect($status !== 0 && str_contains($error, 'ne prend pas'), 'Developer documentation must reject unapproved options');
 
     // --workspace must work even when invoked outside the selected project.
     unlink($backend.'/delegation.json');
