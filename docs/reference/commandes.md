@@ -11,6 +11,7 @@ La CLI est le point d'entrée pour créer et maintenir un projet. Cette référe
 | `symsvel setup` | Reprendre le Setup Wizard local |
 | `symsvel setup:finalize` | Finaliser l'initialisation |
 | `symsvel documentation:sync` | Assemblage documentaire privé manuel (Tooling), hors Setup et sans MkDocs |
+| `symsvel documentation:build-dev` | Reconstruire localement le site développeur MkDocs depuis les docs des composants et modules installés |
 | `symsvel make:module <name>` | Générer un module normalisé |
 | `symsvel module:migrate [MonModule]` | Déléguer au Tooling la génération d'une migration pour un module (générateur Tooling en cours) |
 | `symsvel require <package> [constraint]` | Installer un package |
@@ -67,8 +68,15 @@ des modules : elle rassemble leurs documents déclarés dans
 Le Setup, l'installation initiale, le build Svelte et `symsvel update`
 n'invoquent jamais implicitement ce traitement. Ni Python, ni pip,
 ni MkDocs ne sont installés. Le BO consomme le corpus uniquement par
-un endpoint authentifié du module propriétaire. Le test smoke vérifie
-le routage CLI sans générer de documentation pendant l'installation.
+un endpoint authentifié du module propriétaire. Le test smoke vérifie le routage CLI sans publier l'index privé pendant l'installation.
+
+Le **site MkDocs développeur** suit un cycle distinct : `create-project`
+le construit dès l'installation des composants, puis le reconstruit après
+l'installation et la synchronisation des modules natifs, avant le Wizard.
+La commande `symsvel documentation:build-dev` permet de le régénérer
+manuellement après une mise à jour documentaire. Seules les pages de scope
+`dev` sont copiées dans `dev-doc/docs/symsvel/`, jamais les guides
+`admin` ou `user`. Le site statique demeure strictement local.
 
 ### Préparation release CLI `v0.2.0` (20/11/2026)
 

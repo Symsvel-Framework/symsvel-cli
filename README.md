@@ -31,6 +31,12 @@ symsvel create-project --components=all --dev
 
 `--components=bo|app|front|all` installe le BO et les interfaces supplémentaires demandées. Symfony est installé dans `backend/` ; `bo/`, `app/` et `front/` sont ses dossiers frères. La création délègue l'installation au Tooling et démarre le Setup Wizard local. Une création partielle n'est pas effacée automatiquement.
 
+Le site MkDocs local est construit depuis les véritables sources développeur du Back,
+des interfaces, de Core, de Tooling et des modules installés. Un second build a lieu
+après l'installation des modules natifs, avant l'ouverture du Setup Wizard. Pour
+actualiser ensuite les pages : `symsvel documentation:build-dev`. Cette opération
+ne publie aucun guide privé `admin` ou `user` et n'exporte rien vers le VPS.
+
 Le canal est choisi **à la création** et écrit dans `backend/.symsvel/project.json` : `stable` par défaut, `dev` avec `--dev`. Il est indépendant de `APP_ENV`. Les commandes de maintenance exigent une provenance valide et ne déduisent pas automatiquement un canal pour un ancien projet. Le canal `dev` récupère `dev-dev` pour Back, Core et Tooling lors de la création ; les modules natifs restent sur `dev-main` (branche Git `main`). Pour les packages SymSvel ajoutés sans contrainte explicite, la maintenance conserve provisoirement la résolution `dev-main` ; une contrainte fournie par l'utilisateur est conservée. Voir [le contrat de provenance et le protocole XT](docs/reference/provenance.md).
 
 ## Maintenance sélective

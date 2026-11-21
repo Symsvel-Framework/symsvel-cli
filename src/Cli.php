@@ -18,6 +18,7 @@ final class Cli
                 'setup' => self::setup($args),
                 'setup:finalize' => self::finalizeSetup($args),
                 'documentation:sync' => self::syncDocumentation($args),
+                'documentation:build-dev' => self::buildDeveloperDocumentation($args),
                 'make:module' => self::makeModule($args),
                 'module:migrate' => self::moduleMigrate($args),
                 'update' => self::update($args),
@@ -39,7 +40,8 @@ Usage:
   symsvel doctor
   symsvel setup               # Lance le Wizard local sous l'utilisateur CLI
   symsvel setup:finalize
-  symsvel documentation:sync   # Maintenance manuelle, jamais pendant Setup
+  symsvel documentation:sync   # Index privé BO, maintenance manuelle
+  symsvel documentation:build-dev # Régénérer le site MkDocs local
   symsvel create-project --components=all|bo|app|front [--directory=backend] [--dev]
   symsvel make:module <name> [--scopes=back,bo,app,front] [--vendor=symsvel-framework] [--workspace=path]
   symsvel module:migrate [MonModule] [--workspace=path]
@@ -164,6 +166,13 @@ HELP;
                 // Composer's post-update hook and this explicit synchronization
                 // both use the same deferred-build contract during bootstrap.
                 self::run([PHP_BINARY, 'scripts/symsvel-module-sync.php'], $backend);
+                // Native module docs become available only after Composer/Flex.
+                // Older stable Tooling releases do not yet provide this command:
+                // keep their installations compatible until Tooling is released.
+                $developerBuildCommand = $backend.'/vendor/symsvel-framework/tooling/src/Command/SymSvelDevDocumentationBuildCommand.php';
+                if ($dev || is_file($developerBuildCommand)) {
+                    self::run([PHP_BINARY, 'bin/console', 'symsvel:documentation:build-dev', '--no-interaction'], $backend);
+                }
             } finally {
                 if ($previousDefer === false) {
                     putenv('SYMSVEL_DEFER_BUILDS');
@@ -423,6 +432,24 @@ HELP;
         }
         self::readProjectChannel($backend);
         self::run([PHP_BINARY, 'bin/console', 'symsvel:documentation:sync', '--no-interaction'], $backend);
+        return 0;
+    }
+
+    /** Local-only developer guide; never copied into production. */
+    private static function buildDeveloperDocumentation(array $args): int
+    {
+        if ($args !== []) {
+            throw new \RuntimeException('documentation:build-dev ne prend pas d’arguments.');
+        }
+        $backend = self::findBackend(getcwd());
+        if ($backend === null) {
+            throw new \RuntimeException('Exécutez documentation:build-dev depuis un projet SymSvel.');
+        }
+        self::readProjectChannel($backend);
+        if (!is_file($backend.'/vendor/symsvel-framework/tooling/src/Command/SymSvelDevDocumentationBuildCommand.php')) {
+            throw new \RuntimeException('Version de symsvel-tooling trop ancienne pour la construction MkDocs locale.');
+        }
+        self::run([PHP_BINARY, 'bin/console', 'symsvel:documentation:build-dev', '--no-interaction'], $backend);
         return 0;
     }
 
