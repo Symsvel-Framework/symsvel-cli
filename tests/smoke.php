@@ -346,6 +346,9 @@ PHP);
     [$status, , $error] = executeCli(['documentation:sync', '--unexpected'], $project);
     expect($status !== 0 && str_contains($error, 'ne prend pas'), 'Documentation must reject unapproved options');
     // The local developer site is a separate explicit operation.
+    $builderCommand = $backend.'/vendor/symsvel-framework/tooling/src/Command';
+    mkdir($builderCommand, 0775, true);
+    file_put_contents($builderCommand.'/SymSvelDevDocumentationBuildCommand.php', '<?php');
     [$status, , $error] = executeCli(['documentation:build-dev'], $project);
     expect($status === 0, 'Developer documentation build delegation failed: '.$error);
     $delegated = json_decode((string) file_get_contents($backend.'/delegation.json'), true, 512, JSON_THROW_ON_ERROR);
