@@ -67,6 +67,9 @@ $temporary = sys_get_temp_dir().'/symsvel-cli-smoke-'.bin2hex(random_bytes(6));
 mkdir($temporary, 0775, true);
 
 try {
+    [$status, $out] = executeCli(['--version'], $temporary);
+    expect($status === 0 && trim($out) === 'SymSvel CLI 0.2.0', 'Stable CLI must report the matching release version');
+
     [$status, $out] = executeCli(['--help'], $temporary);
     expect($status === 0 && str_contains($out, 'make:module'), 'Help must advertise make:module');
     expect(str_contains($out, '[--bootstrap]'), 'Help must advertise bootstrap require mode');
