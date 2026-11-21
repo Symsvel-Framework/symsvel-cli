@@ -30,7 +30,7 @@ symsvel require symsvel-framework/module-exemple dev-main
 symsvel update symsvel-framework/module-exemple
 ```
 
-La CLI requiert PHP 8.4+, Composer et Git. Node.js et npm sont nécessaires aux composants Svelte. Symfony CLI est facultative.
+La CLI requiert PHP 8.4+, Composer et Git. Node.js/npm sont nécessaires aux composants Svelte, et Python 3 est requis lors de `create-project` pour construire `dev-doc/site/` via un venv MkDocs local. Symfony CLI reste facultative. `dev-doc` est exclu du déploiement de production.
 
 Les commandes avancées de synchronisation, migration et récupération appartiennent à la console Symfony du Tooling. Depuis un backend installé, utiliser `php bin/console list symsvel` et `--help` pour obtenir leurs signatures exactes.
 

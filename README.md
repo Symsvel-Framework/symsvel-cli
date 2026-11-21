@@ -1,6 +1,6 @@
 # SymSvel CLI
 
-Point d'entrée autonome des projets SymSvel (PHP 8.4+, Composer, Git ; Node.js/npm pour les interfaces SvelteKit). La CLI orchestre les commandes utilisateur ; **le Tooling conserve les moteurs d'installation, synchronisation et transaction**. Le Setup Wizard local en deux phases est coordonné entre CLI, Tooling, Back et modules natifs. Les crash-tests XT du 11/11/2026 ont validé le parcours d'installation et les migrations natives sous PostgreSQL et MySQL ; les autres parcours de maintenance et les autres SGBD restent à valider séparément.
+Point d'entrée autonome des projets SymSvel (PHP 8.4+, Composer, Git ; Node.js/npm pour les interfaces SvelteKit ; Python 3 pour construire automatiquement la documentation développeur locale avec MkDocs). La CLI orchestre les commandes utilisateur ; **le Tooling conserve les moteurs d'installation, synchronisation et transaction**. Le Setup Wizard local en deux phases est coordonné entre CLI, Tooling, Back et modules natifs. Les crash-tests XT du 11/11/2026 ont validé le parcours d'installation et les migrations natives sous PostgreSQL et MySQL ; les autres parcours de maintenance et les autres SGBD restent à valider séparément.
 
 ## Bilan CT XT multi-SGBD du 11 novembre 2026
 
