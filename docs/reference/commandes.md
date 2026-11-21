@@ -73,8 +73,12 @@ un endpoint authentifié du module propriétaire. Le test smoke vérifie le rout
 Le **site MkDocs développeur** suit un cycle distinct : `create-project`
 le construit dès l'installation des composants, puis le reconstruit après
 l'installation et la synchronisation des modules natifs, avant le Wizard.
-La commande `symsvel documentation:build-dev` permet de le régénérer
-manuellement après une mise à jour documentaire. Seules les pages de scope
+Tooling le régénère également **automatiquement après une opération
+`symsvel require`, `symsvel update` ou `symsvel remove` réussie**, ainsi
+qu'après une mise à jour globale ; en cas de rollback, aucune publication
+documentaire n'a lieu. La commande `symsvel documentation:build-dev` permet
+de le régénérer manuellement après une édition directe de documents.
+Seules les pages de scope
 `dev` sont copiées dans `dev-doc/docs/symsvel/`, jamais les guides
 `admin` ou `user`. Le site statique demeure strictement local.
 
