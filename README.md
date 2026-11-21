@@ -2,7 +2,7 @@
 
 > [!IMPORTANT]
 > **SymSvel commence ici.** La **CLI est le point d'entrée unique** pour créer un projet, choisir ses composants, installer les modules et gérer les mises à jour. Les autres dépôts de l'organisation sont des composants techniques, pas des procédures d'installation alternatives.
->
+
 > [!WARNING]
 > **SymSvel est en cours de développement.** Interfaces, API et procédures peuvent évoluer ou présenter des anomalies. **Utilisation à vos risques et périls.**
 
