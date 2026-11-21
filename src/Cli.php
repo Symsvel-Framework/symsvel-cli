@@ -166,9 +166,13 @@ HELP;
                 // Composer's post-update hook and this explicit synchronization
                 // both use the same deferred-build contract during bootstrap.
                 self::run([PHP_BINARY, 'scripts/symsvel-module-sync.php'], $backend);
-                // Native module docs become available only after Composer/Flex
-                // installation. Rebuild the local site with those sources.
-                self::run([PHP_BINARY, 'bin/console', 'symsvel:documentation:build-dev', '--no-interaction'], $backend);
+                // Native module docs become available only after Composer/Flex.
+                // Older stable Tooling releases do not yet provide this command:
+                // keep their installations compatible until Tooling is released.
+                $developerBuildCommand = $backend.'/vendor/symsvel-framework/tooling/src/Command/SymSvelDevDocumentationBuildCommand.php';
+                if ($dev || is_file($developerBuildCommand)) {
+                    self::run([PHP_BINARY, 'bin/console', 'symsvel:documentation:build-dev', '--no-interaction'], $backend);
+                }
             } finally {
                 if ($previousDefer === false) {
                     putenv('SYMSVEL_DEFER_BUILDS');
@@ -442,6 +446,9 @@ HELP;
             throw new \RuntimeException('Exécutez documentation:build-dev depuis un projet SymSvel.');
         }
         self::readProjectChannel($backend);
+        if (!is_file($backend.'/vendor/symsvel-framework/tooling/src/Command/SymSvelDevDocumentationBuildCommand.php')) {
+            throw new \RuntimeException('Version de symsvel-tooling trop ancienne pour la construction MkDocs locale.');
+        }
         self::run([PHP_BINARY, 'bin/console', 'symsvel:documentation:build-dev', '--no-interaction'], $backend);
         return 0;
     }
