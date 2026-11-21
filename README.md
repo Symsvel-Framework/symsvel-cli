@@ -1,5 +1,11 @@
 # SymSvel CLI
 
+> [!IMPORTANT]
+> **SymSvel commence ici.** La **CLI est le point d'entrée unique** pour créer un projet, choisir ses composants, installer les modules et gérer les mises à jour. Les autres dépôts de l'organisation sont des composants techniques, pas des procédures d'installation alternatives.
+>
+> [!WARNING]
+> **SymSvel est en cours de développement.** Interfaces, API et procédures peuvent évoluer ou présenter des anomalies. **Utilisation à vos risques et périls.**
+
 Point d'entrée autonome des projets SymSvel (PHP 8.4+, Composer, Git ; Node.js/npm pour les interfaces SvelteKit ; Python 3 pour construire automatiquement la documentation développeur locale avec MkDocs). La CLI orchestre les commandes utilisateur ; **le Tooling conserve les moteurs d'installation, synchronisation et transaction**. Le Setup Wizard local en deux phases est coordonné entre CLI, Tooling, Back et modules natifs. Les crash-tests XT du 11/11/2026 ont validé le parcours d'installation et les migrations natives sous PostgreSQL et MySQL ; les autres parcours de maintenance et les autres SGBD restent à valider séparément.
 
 ## Bilan CT XT multi-SGBD du 11 novembre 2026
@@ -18,7 +24,7 @@ ln -s "$(pwd)/bin/symsvel" /usr/local/bin/symsvel
 symsvel doctor
 ```
 
-Le dossier de destination doit exister et être accessible en écriture. L'accès aux dépôts privés SymSvel et la configuration Composer/GitHub sont nécessaires selon le canal.
+Le dossier de destination doit exister et être accessible en écriture. La distribution publique des composants SymSvel vise une installation sans jeton GitHub de lecture. L'accès aux dépôts d'infrastructure privés reste réservé aux mainteneurs ; avant l'ouverture publique des composants, une authentification GitHub peut encore être nécessaire.
 
 ## Créer un projet
 
@@ -94,3 +100,11 @@ Pendant le crash-test local, le parcours Setup ajoute des traces dans `.symsvel/
 Deux configurations sont conservées : `.github/workflows/ci.yml.stub` contient la CI GitHub-hosted d'origine (`ubuntu-latest` et `shivammathur/setup-php@v2`), désactivée par son extension `.stub` ; `.github/workflows/ci.yml` est la CI active sur le runner Docker ARM64 de l'organisation (`self-hosted`, `linux`, `ARM64`, `symsvel`). Elle utilise PHP 8.4 préinstallé dans l'image `symsvel-runner:latest` et vérifie explicitement sa version avant les quatre tests PHP inchangés. L'action `setup-php` échouait sur l'image Debian PHP utilisée par le runner local.
 
 Pour revenir à la CI GitHub hébergée, remplacer `ci.yml` par le contenu de `ci.yml.stub` ; ne pas activer les deux configurations simultanément si l'objectif est d'économiser les minutes GitHub. Le runner local persistant est réservé aux dépôts et contributions de confiance. La validation finale requiert une CI verte sur le runner Docker et les crash-tests XT applicables.
+
+---
+
+## Participer et soutenir le projet
+
+SymSvel est un projet en cours de développement. Pour contribuer, proposer une amélioration ou échanger avec le mainteneur : **[xavier@xavier-tezza.fr](mailto:xavier@xavier-tezza.fr)**.
+
+SymSvel vous est utile et vous souhaitez me remercier ? **Offrez-moi une bière ! 🍺** (lien PayPal à compléter avant l'ouverture publique).
