@@ -48,7 +48,7 @@ Usage:
   symsvel remove <package>
   symsvel --version
 
-The CLI requires PHP, Composer and Git. create-project requires Node.js and npm
+The CLI requires PHP, Composer and Git. create-project requires Node.js, npm and Python 3 (MkDocs)
 for frontend components. The Symfony CLI is not required.
 Run require/update/remove from a SymSvel project or its backend directory.
 HELP;
@@ -73,6 +73,7 @@ HELP;
             'Git' => self::available('git'),
             'Node.js' => self::available('node'),
             'npm' => self::available('npm'),
+            'Python 3 (MkDocs)' => self::available('python3'),
         ];
         $colors = self::supportsAnsiColors();
         foreach ($requirements as $name => $ok) {
@@ -640,7 +641,7 @@ HELP;
         if (PHP_VERSION_ID < 80400) {
             throw new \RuntimeException('PHP >= 8.4 requis.');
         }
-        foreach (array_merge(['composer', 'git'], $node ? ['node', 'npm'] : []) as $program) {
+        foreach (array_merge(['composer', 'git'], $node ? ['node', 'npm', 'python3'] : []) as $program) {
             if (!self::available($program)) {
                 throw new \RuntimeException('Prérequis manquant : '.$program);
             }
