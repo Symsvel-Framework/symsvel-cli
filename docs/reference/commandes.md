@@ -84,4 +84,4 @@ Seules les pages de scope
 
 ### Préparation release CLI `v0.2.0` (20/11/2026)
 
-La branche stable `main` annonce `SymSvel CLI 0.2.0` via `symsvel --version` pour correspondre au prochain tag `v0.2.0`. La branche de développement conserve son suffixe `-dev`. Le smoke test vérifie la sortie exacte. La publication du tag et de la GitHub Release reste distincte du commit et doit être vérifiée avant le CT utilisateur sans `--dev`.
+Le tag `v0.2.0` a été posé le 20/11/2026. Les correctifs du build MkDocs et de son rafraîchissement sont publiés sous `v0.2.1` ; la CLI doit donc annoncer `SymSvel CLI 0.2.1` via `symsvel --version` et le smoke test contrôle cette valeur. La branche de développement conserve son suffixe `-dev`. Le smoke test vérifie la sortie exacte. La publication du tag et de la GitHub Release reste distincte du commit et doit être vérifiée avant le CT utilisateur sans `--dev`.
