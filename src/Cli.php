@@ -123,7 +123,7 @@ HELP;
         if (file_exists($directory)) {
             throw new \RuntimeException('Destination déjà existante : '.$directory.' (aucune suppression automatique).');
         }
-        self::assertRequirements(true);
+        self::assertRequirements(true, true);
         $create = ['composer', 'create-project'];
         if ($dev) {
             // Resolve the skeleton directly from GitHub, bypassing potentially stale Satis metadata.
@@ -636,12 +636,12 @@ HELP;
         return null;
     }
 
-    private static function assertRequirements(bool $node): void
+    private static function assertRequirements(bool $node, bool $mkdocs = false): void
     {
         if (PHP_VERSION_ID < 80400) {
             throw new \RuntimeException('PHP >= 8.4 requis.');
         }
-        foreach (array_merge(['composer', 'git'], $node ? ['node', 'npm', 'python3'] : []) as $program) {
+        foreach (array_merge(['composer', 'git'], $node ? ['node', 'npm'] : [], $mkdocs ? ['python3'] : []) as $program) {
             if (!self::available($program)) {
                 throw new \RuntimeException('Prérequis manquant : '.$program);
             }
