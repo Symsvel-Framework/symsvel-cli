@@ -1,7 +1,6 @@
 # Intégration continue
 
-La branche `dev` est le terrain de développement ; `main` conserve la version stable.
+Depuis le 22/11/2026, la CI active `.github/workflows/ci.yml` est exécutée sur **GitHub-hosted Ubuntu 24.04**, avec PHP 8.4 installé par `shivammathur/setup-php@v2`, Composer et les tests existants. Les `push` vers `dev` et `main`, ainsi que les PR vers `main`, déclenchent la CI. `ci.yml.stub` reste une archive inactive.
 
-Le workflow `.github/workflows/ci.yml` est déclenché par les `push` sur `dev` et `main`, ainsi que par les pull requests ciblant `main`. Les pull requests ciblant `dev` ne déclenchent pas de CI au titre de l'événement `pull_request` ; un `push` sur `dev` déclenche sa propre exécution. Les éventuels déclencheurs supplémentaires définis dans le workflow restent applicables.
+Les runners du mainteneur ne servent plus ces dépôts publics : ils restent réservés à `symsvel-packages` et `symsvel-recipes` (privés). CI et crash-tests restent des validations distinctes.
 
-Les jobs utilisent les runners auto-hébergés configurés dans le workflow. Une modification n'est validée qu'après exécution et réussite de la CI, puis les crash-tests locaux requis.
