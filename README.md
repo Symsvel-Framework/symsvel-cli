@@ -83,11 +83,12 @@ Lors du lancement du Wizard, la CLI résout `npm` depuis son `PATH` et transmet 
 
 Pendant le crash-test local, le parcours Setup ajoute des traces dans `.symsvel/npm-trace.log` à la racine du workspace. Les étapes CLI, contrôleur et Tooling journalisent l'horodatage, le PID, le chemin npm et le PATH utiles au diagnostic ; Tooling journalise également la commande de build choisie et son code de sortie. Aucun secret ni environnement complet n'est journalisé. Ces traces sont temporaires, réservées au diagnostic local ; leur retrait constitue un nettoyage à vérifier avant release. Ne pas publier ce journal.
 
-### CI GitHub et runner Docker local (10/11/2026)
+## Intégration continue GitHub-hosted (22/11/2026)
 
-Deux configurations sont conservées : `.github/workflows/ci.yml.stub` contient la CI GitHub-hosted d'origine (`ubuntu-latest` et `shivammathur/setup-php@v2`), désactivée par son extension `.stub` ; `.github/workflows/ci.yml` est la CI active sur le runner Docker ARM64 de l'organisation (`self-hosted`, `linux`, `ARM64`, `symsvel`). Elle utilise PHP 8.4 préinstallé dans l'image `symsvel-runner:latest` et vérifie explicitement sa version avant les quatre tests PHP inchangés. L'action `setup-php` échouait sur l'image Debian PHP utilisée par le runner local.
+Les workflows de ce dépôt public s'exécutent sur **GitHub-hosted Ubuntu 24.04**, avec les dépendances installées dans chaque job (plus de runner Docker local). Le workflow actif est `.github/workflows/ci.yml`. Les contrôles syntaxiques PHP et les smoke-tests CLI sont conservés. Les publications GitHub Release par tag exécutent aussi leurs workflows sur GitHub-hosted.
 
-Pour revenir à la CI GitHub hébergée, remplacer `ci.yml` par le contenu de `ci.yml.stub` ; ne pas activer les deux configurations simultanément si l'objectif est d'économiser les minutes GitHub. Le runner local persistant est réservé aux dépôts et contributions de confiance. La validation finale requiert une CI verte sur le runner Docker et les crash-tests XT applicables.
+Les runners auto-hébergés du mainteneur restent réservés à `symsvel-packages` et `symsvel-recipes` (privés). Les CI et les crash-tests locaux sont des validations distinctes.
+
 
 ## Licence MIT et contributions
 
