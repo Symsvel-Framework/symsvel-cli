@@ -88,3 +88,11 @@ Pendant le crash-test local, le parcours Setup ajoute des traces dans `.symsvel/
 Deux configurations sont conservées : `.github/workflows/ci.yml.stub` contient la CI GitHub-hosted d'origine (`ubuntu-latest` et `shivammathur/setup-php@v2`), désactivée par son extension `.stub` ; `.github/workflows/ci.yml` est la CI active sur le runner Docker ARM64 de l'organisation (`self-hosted`, `linux`, `ARM64`, `symsvel`). Elle utilise PHP 8.4 préinstallé dans l'image `symsvel-runner:latest` et vérifie explicitement sa version avant les quatre tests PHP inchangés. L'action `setup-php` échouait sur l'image Debian PHP utilisée par le runner local.
 
 Pour revenir à la CI GitHub hébergée, remplacer `ci.yml` par le contenu de `ci.yml.stub` ; ne pas activer les deux configurations simultanément si l'objectif est d'économiser les minutes GitHub. Le runner local persistant est réservé aux dépôts et contributions de confiance. La validation finale requiert une CI verte sur le runner Docker et les crash-tests XT applicables.
+
+## Licence MIT et contributions
+
+Ce dépôt est distribué sous [licence MIT](LICENSE). Le code peut être utilisé, modifié et redistribué, y compris dans des projets commerciaux ou propriétaires, dans les conditions de cette licence (notamment la conservation de la notice de copyright et de licence).
+
+**Contribuer :** créer un fork, puis proposer une pull request vers `dev` lorsque cette branche existe, sinon vers la branche par défaut. Expliquer la modification et fournir les tests et la documentation concernés. Les mainteneurs conservent la maîtrise des revues, des validations (CI et crash-tests), de l'intégration et des releases officielles. Une PR ne garantit pas son acceptation.
+
+**Versions officielles :** seules les versions diffusées par l'organisation [Symsvel-Framework](https://github.com/Symsvel-Framework) sont officielles. Les forks sont libres sous MIT, mais ne doivent pas être présentés comme officiellement approuvés par les mainteneurs. Cette distinction n'ajoute aucune restriction aux droits accordés par la licence MIT sur le code.
