@@ -124,7 +124,7 @@ HELP;
             throw new \RuntimeException('Destination déjà existante : '.$directory.' (aucune suppression automatique).');
         }
         self::assertRequirements(true, true);
-        $create = ['composer', 'create-project', '--prefer-source', '--keep-vcs'];
+        $create = ['composer', 'create-project', '--prefer-source', '--keep-vcs', '--no-install'];
         if ($dev) {
             // Resolve the skeleton directly from GitHub, bypassing potentially stale Satis metadata.
             $create[] = '--repository={"type":"vcs","url":"https://github.com/Symsvel-Framework/symsvel-back.git"}';
@@ -140,6 +140,9 @@ HELP;
             throw new \RuntimeException('Projet créé, mais bin/console introuvable. Destination conservée : '.$directory);
         }
         try {
+            // Keep only the skeleton as a source checkout. Dependencies retain
+            // normal dist installation rather than cloning every Git repository.
+            self::run(['composer', 'install', '--prefer-dist', '--no-interaction'], $backend);
             self::persistProjectChannel($backend, $dev ? 'dev' : 'stable');
             if ($dev) {
                 // The initial skeleton has already been created. Further Composer
@@ -158,6 +161,14 @@ HELP;
             // The original Composer source checkout is still available, even
             // after Composer has generated project-specific files and constraints.
             self::run([PHP_BINARY, 'scripts/symsvel-composer-transaction.php', 'record-back'], $backend);
+            // Only this newly created directory can contain the upstream Git.
+            // The maintenance command never removes application Git metadata.
+            if (file_exists($backend.'/.git') || is_link($backend.'/.git')) {
+                if (!is_dir($backend.'/.git') || is_link($backend.'/.git')) {
+                    throw new \RuntimeException('Métadonnées Git natives Back non fiables.');
+                }
+                self::run(['rm', '-rf', '--', $backend.'/.git'], $backend);
+            }
             // Defer builds from the first component clone through native module installation.
             $previousDefer = getenv('SYMSVEL_DEFER_BUILDS');
             putenv('SYMSVEL_DEFER_BUILDS=1');

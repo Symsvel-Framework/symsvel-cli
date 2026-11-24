@@ -334,6 +334,19 @@ PHP);
     rmdir($backend.'/scripts');
     file_put_contents($channelFile, json_encode(['schema' => 1, 'channel' => 'dev'], JSON_THROW_ON_ERROR));
 
+    // Back uses the standalone Tooling launcher, not the Symfony kernel or a package named back.
+    mkdir($backend.'/scripts');
+    file_put_contents($launcher, <<<'PHP'
+<?php
+file_put_contents(__DIR__.'/../back-invocation.json', json_encode(array_slice($argv, 1), JSON_THROW_ON_ERROR));
+PHP);
+    [$status, , $error] = executeCli(['update', 'back'], $project);
+    expect($status === 0, 'Back update delegation failed: '.$error);
+    expect(json_decode((string) file_get_contents($backend.'/back-invocation.json'), true) === ['update-back'], 'Back update must delegate to native transaction');
+    unlink($backend.'/back-invocation.json');
+    unlink($launcher);
+    rmdir($backend.'/scripts');
+
     // Component updates must reach Tooling, never Composer's package transaction.
     [$status, , $error] = executeCli(['update', 'app'], $project);
     expect($status === 0, 'Component update delegation failed: '.$error);
