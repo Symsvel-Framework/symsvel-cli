@@ -68,7 +68,7 @@ mkdir($temporary, 0775, true);
 
 try {
     [$status, $out] = executeCli(['--version'], $temporary);
-    expect($status === 0 && trim($out) === 'SymSvel CLI 0.2.0', 'Stable CLI must report the matching release version');
+    expect($status === 0 && trim($out) === 'SymSvel CLI 0.3.0', 'Stable CLI must report the matching release version');
 
     [$status, $out] = executeCli(['--help'], $temporary);
     expect($status === 0 && str_contains($out, 'make:module'), 'Help must advertise make:module');
@@ -364,6 +364,17 @@ PHP);
     expect($delegated === ['symsvel:documentation:sync', '--no-interaction'], 'Documentation must delegate solely to Tooling');
     [$status, , $error] = executeCli(['documentation:sync', '--unexpected'], $project);
     expect($status !== 0 && str_contains($error, 'ne prend pas'), 'Documentation must reject unapproved options');
+
+    // The local developer site is a separate explicit operation.
+    $builderCommand = $backend.'/vendor/symsvel-framework/tooling/src/Command';
+    mkdir($builderCommand, 0775, true);
+    file_put_contents($builderCommand.'/SymSvelDevDocumentationBuildCommand.php', '<?php');
+    [$status, , $error] = executeCli(['documentation:build-dev'], $project);
+    expect($status === 0, 'Developer documentation build delegation failed: '.$error);
+    $delegated = json_decode((string) file_get_contents($backend.'/delegation.json'), true, 512, JSON_THROW_ON_ERROR);
+    expect($delegated === ['symsvel:documentation:build-dev', '--no-interaction'], 'Developer documentation must delegate to Tooling');
+    [$status, , $error] = executeCli(['documentation:build-dev', '--unexpected'], $project);
+    expect($status !== 0 && str_contains($error, 'ne prend pas'), 'Developer documentation must reject unapproved options');
 
     // --workspace must work even when invoked outside the selected project.
     unlink($backend.'/delegation.json');

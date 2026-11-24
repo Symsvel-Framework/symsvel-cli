@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]*.[0-9]*.[0-9]*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: composer:v2
+      - name: Verify PHP 8.4
+        run: |
+          php -v
+          php -r 'if (PHP_VERSION_ID < 80400 || PHP_VERSION_ID >= 80500) { exit(1); }'
+      - name: Validate CLI source and smoke tests
+        run: |
+          php -l bin/symsvel
+          php -l src/Cli.php
+          php -l tests/smoke.php
+          php tests/smoke.php
+      - name: Check tag matches advertised CLI version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          actual="$(php bin/symsvel --version)"
+          expected="SymSvel CLI ${RELEASE_TAG#v}"
+          test "$actual" = "$expected" || { echo "::error::CLI announces '$actual', expected '$expected'"; exit 1; }
+      - name: Publish GitHub Release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const tag = context.ref.replace(/^refs\/tags\//, '');
+            if (!/^v\d+\.\d+\.\d+$/.test(tag)) {
+              throw new Error('Release requires an existing semantic version tag.');
+            }
+            const verified = await github.rest.git.getRef({ owner, repo, ref: `tags/${tag}` });
+            if (verified.data.ref !== `refs/tags/${tag}`) {
+              throw new Error('Tag could not be verified.');
+            }
+            await github.rest.repos.createRelease({
+              owner, repo, tag_name: tag, name: tag,
+              generate_release_notes: true,
+            });

@@ -11,6 +11,7 @@ La CLI est le point d'entrée pour créer et maintenir un projet. Cette référe
 | `symsvel setup` | Reprendre le Setup Wizard local |
 | `symsvel setup:finalize` | Finaliser l'initialisation |
 | `symsvel documentation:sync` | Assemblage documentaire privé manuel (Tooling), hors Setup et sans MkDocs |
+| `symsvel documentation:build-dev` | Reconstruire localement le site développeur MkDocs depuis les docs des composants et modules installés |
 | `symsvel make:module <name>` | Générer un module normalisé |
 | `symsvel module:migrate [MonModule]` | Déléguer au Tooling la génération d'une migration pour un module (générateur Tooling en cours) |
 | `symsvel require <package> [constraint]` | Installer un package |
@@ -77,3 +78,19 @@ La branche stable `main` annonce `SymSvel CLI 0.2.0` via `symsvel --version` pou
 ### Mise à jour du squelette Back
 
 `symsvel update back` délègue au lanceur transactionnel de Tooling, sans démarrer Symfony. Il est distinct de `symsvel update` (dépendances Composer) et de la mise à jour d'un module. Le canal du projet sélectionne la source officielle ; les fichiers natifs sont comparés à leur provenance, les modifications locales non conflictuelles sont conservées. Composer résout le lock du projet et un audit bloquant précède la validation de la transaction. Aucun Git applicatif n'est modifié. Les projets sans provenance Back fiable et les conflits sont refusés. À utiliser en développement, avant publication Git du projet ; le déploiement VPS reste indépendant.
+
+Le **site MkDocs développeur** suit un cycle distinct : `create-project`
+le construit dès l'installation des composants, puis le reconstruit après
+l'installation et la synchronisation des modules natifs, avant le Wizard.
+Tooling le régénère également **automatiquement après une opération
+`symsvel require`, `symsvel update` ou `symsvel remove` réussie**, ainsi
+qu'après une mise à jour globale ; en cas de rollback, aucune publication
+documentaire n'a lieu. La commande `symsvel documentation:build-dev` permet
+de le régénérer manuellement après une édition directe de documents.
+Seules les pages de scope
+`dev` sont copiées dans `dev-doc/docs/symsvel/`, jamais les guides
+`admin` ou `user`. Le site statique demeure strictement local.
+
+## Release v0.3.0 (24/11/2026)
+
+Conserve `documentation:build-dev` de la v0.2.1, ajoute `update back` et l'enregistrement de provenance native à la création. Le smoke test contrôle la version annoncée et les délégations. La publication doit suivre les composants compatibles et leurs CI vertes. CT stable sans `--dev` distinct.

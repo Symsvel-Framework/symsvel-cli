@@ -1,5 +1,11 @@
 # SymSvel CLI
 
+> [!IMPORTANT]
+> **SymSvel commence ici.** La **CLI est le point d'entrée unique** pour créer un projet, choisir ses composants, installer les modules et gérer les mises à jour. Les autres dépôts de l'organisation sont des composants techniques, pas des procédures d'installation alternatives.
+
+> [!WARNING]
+> **SymSvel est en cours de développement.** Interfaces, API et procédures peuvent évoluer ou présenter des anomalies. **Utilisation à vos risques et périls.**
+
 Point d'entrée autonome des projets SymSvel (PHP 8.4+, Composer, Git ; Node.js/npm pour les interfaces SvelteKit ; Python 3 pour construire automatiquement la documentation développeur locale avec MkDocs). La CLI orchestre les commandes utilisateur ; **le Tooling conserve les moteurs d'installation, synchronisation et transaction**. Le Setup Wizard local en deux phases est coordonné entre CLI, Tooling, Back et modules natifs. Les crash-tests XT du 11/11/2026 ont validé le parcours d'installation et les migrations natives sous PostgreSQL et MySQL ; les autres parcours de maintenance et les autres SGBD restent à valider séparément.
 
 ## Bilan CT XT multi-SGBD du 11 novembre 2026
@@ -99,3 +105,15 @@ Ce dépôt est distribué sous [licence MIT](LICENSE). Le code peut être utilis
 **Versions officielles :** seules les versions diffusées par l'organisation [Symsvel-Framework](https://github.com/Symsvel-Framework) sont officielles. Les forks sont libres sous MIT, mais ne doivent pas être présentés comme officiellement approuvés par les mainteneurs. Cette distinction n'ajoute aucune restriction aux droits accordés par la licence MIT sur le code.
 
 La commande `symsvel update back` met à jour le squelette natif du backend via Tooling, avec contrôle de provenance, détection de conflits et rollback transactionnel. Elle ne fait aucun merge Git dans le projet. Voir la [référence](docs/reference/commandes.md).
+
+## Participer et soutenir le projet
+
+SymSvel est un projet en cours de développement. Pour contribuer, proposer une amélioration ou échanger avec le mainteneur : **[xavier@xavier-tezza.fr](mailto:xavier@xavier-tezza.fr)**.
+
+SymSvel vous est utile et vous souhaitez me remercier ? **Offrez-moi une bière ! 🍺** (lien PayPal à compléter avant l'ouverture publique).
+
+Le site MkDocs local est construit depuis les véritables sources développeur du Back,
+des interfaces, de Core, de Tooling et des modules installés. Un second build a lieu
+après l'installation des modules natifs, avant l'ouverture du Setup Wizard. Pour
+actualiser ensuite les pages : `symsvel documentation:build-dev`. Cette opération
+ne publie aucun guide privé `admin` ou `user` et n'exporte rien vers le VPS.
