@@ -97,3 +97,5 @@ Ce dépôt est distribué sous [licence MIT](LICENSE). Le code peut être utilis
 **Contribuer :** créer un fork, puis proposer une pull request vers `dev` lorsque cette branche existe, sinon vers la branche par défaut. Expliquer la modification et fournir les tests et la documentation concernés. Les mainteneurs conservent la maîtrise des revues, des validations (CI et crash-tests), de l'intégration et des releases officielles. Une PR ne garantit pas son acceptation.
 
 **Versions officielles :** seules les versions diffusées par l'organisation [Symsvel-Framework](https://github.com/Symsvel-Framework) sont officielles. Les forks sont libres sous MIT, mais ne doivent pas être présentés comme officiellement approuvés par les mainteneurs. Cette distinction n'ajoute aucune restriction aux droits accordés par la licence MIT sur le code.
+
+La commande `symsvel update back` met à jour le squelette natif du backend via Tooling, avec contrôle de provenance, détection de conflits et rollback transactionnel. Elle ne fait aucun merge Git dans le projet. Voir la [référence](docs/reference/commandes.md).

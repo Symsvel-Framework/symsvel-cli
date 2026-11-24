@@ -73,6 +73,12 @@ try {
     [$status, $out] = executeCli(['--help'], $temporary);
     expect($status === 0 && str_contains($out, 'make:module'), 'Help must advertise make:module');
     expect(str_contains($out, '[--bootstrap]'), 'Help must advertise bootstrap require mode');
+    expect(str_contains($out, 'update [back|bo|app|front|package]'), 'Help must advertise Back update');
+    expect(str_contains($cliSource, "'--prefer-source', '--keep-vcs'"), 'Creation must preserve exact native source checkout');
+    expect(str_contains($cliSource, "'record-back'"), 'Creation must record Back provenance before setup');
+
+    [$status, , $error] = executeCli(['update', 'back', '--dev'], $temporary);
+    expect($status !== 0 && str_contains($error, 'argument supplémentaire'), 'Back update must reject options and extra targets');
 
     [$status, , $error] = executeCli(['make:module'], $temporary);
     expect($status !== 0 && str_contains($error, 'Nom requis'), 'Missing module name must fail');

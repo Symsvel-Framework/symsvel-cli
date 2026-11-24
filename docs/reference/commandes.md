@@ -14,7 +14,7 @@ La CLI est le point d'entrée pour créer et maintenir un projet. Cette référe
 | `symsvel make:module <name>` | Générer un module normalisé |
 | `symsvel module:migrate [MonModule]` | Déléguer au Tooling la génération d'une migration pour un module (générateur Tooling en cours) |
 | `symsvel require <package> [constraint]` | Installer un package |
-| `symsvel update [bo|app|front|package]` | Mettre à jour sélectivement |
+| `symsvel update [back|bo|app|front|package]` | Mettre à jour sélectivement |
 | `symsvel remove <package>` | Désinstaller un package |
 
 ## Exemples
@@ -73,3 +73,7 @@ le routage CLI sans générer de documentation pendant l'installation.
 ### Préparation release CLI `v0.2.0` (20/11/2026)
 
 La branche stable `main` annonce `SymSvel CLI 0.2.0` via `symsvel --version` pour correspondre au prochain tag `v0.2.0`. La branche de développement conserve son suffixe `-dev`. Le smoke test vérifie la sortie exacte. La publication du tag et de la GitHub Release reste distincte du commit et doit être vérifiée avant le CT utilisateur sans `--dev`.
+
+### Mise à jour du squelette Back
+
+`symsvel update back` délègue au lanceur transactionnel de Tooling, sans démarrer Symfony. Il est distinct de `symsvel update` (dépendances Composer) et de la mise à jour d'un module. Le canal du projet sélectionne la source officielle ; les fichiers natifs sont comparés à leur provenance, les modifications locales non conflictuelles sont conservées. Composer résout le lock du projet et un audit bloquant précède la validation de la transaction. Aucun Git applicatif n'est modifié. Les projets sans provenance Back fiable et les conflits sont refusés. À utiliser en développement, avant publication Git du projet ; le déploiement VPS reste indépendant.
