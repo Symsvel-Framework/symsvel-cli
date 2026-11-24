@@ -68,11 +68,17 @@ mkdir($temporary, 0775, true);
 
 try {
     [$status, $out] = executeCli(['--version'], $temporary);
-    expect($status === 0 && trim($out) === 'SymSvel CLI 0.2.1', 'Stable CLI must report the matching release version');
+    expect($status === 0 && trim($out) === 'SymSvel CLI 0.3.0', 'Stable CLI must report the matching release version');
 
     [$status, $out] = executeCli(['--help'], $temporary);
     expect($status === 0 && str_contains($out, 'make:module'), 'Help must advertise make:module');
     expect(str_contains($out, '[--bootstrap]'), 'Help must advertise bootstrap require mode');
+    expect(str_contains($out, 'update [back|bo|app|front|package]'), 'Help must advertise Back update');
+    expect(str_contains($cliSource, "'--prefer-source', '--keep-vcs'"), 'Creation must preserve exact native source checkout');
+    expect(str_contains($cliSource, "'record-back'"), 'Creation must record Back provenance before setup');
+
+    [$status, , $error] = executeCli(['update', 'back', '--dev'], $temporary);
+    expect($status !== 0 && str_contains($error, 'argument supplémentaire'), 'Back update must reject options and extra targets');
 
     [$status, , $error] = executeCli(['make:module'], $temporary);
     expect($status !== 0 && str_contains($error, 'Nom requis'), 'Missing module name must fail');
@@ -328,6 +334,19 @@ PHP);
     rmdir($backend.'/scripts');
     file_put_contents($channelFile, json_encode(['schema' => 1, 'channel' => 'dev'], JSON_THROW_ON_ERROR));
 
+    // Back uses the standalone Tooling launcher, not the Symfony kernel or a package named back.
+    mkdir($backend.'/scripts');
+    file_put_contents($launcher, <<<'PHP'
+<?php
+file_put_contents(__DIR__.'/../back-invocation.json', json_encode(array_slice($argv, 1), JSON_THROW_ON_ERROR));
+PHP);
+    [$status, , $error] = executeCli(['update', 'back'], $project);
+    expect($status === 0, 'Back update delegation failed: '.$error);
+    expect(json_decode((string) file_get_contents($backend.'/back-invocation.json'), true) === ['update-back'], 'Back update must delegate to native transaction');
+    unlink($backend.'/back-invocation.json');
+    unlink($launcher);
+    rmdir($backend.'/scripts');
+
     // Component updates must reach Tooling, never Composer's package transaction.
     [$status, , $error] = executeCli(['update', 'app'], $project);
     expect($status === 0, 'Component update delegation failed: '.$error);
@@ -345,6 +364,7 @@ PHP);
     expect($delegated === ['symsvel:documentation:sync', '--no-interaction'], 'Documentation must delegate solely to Tooling');
     [$status, , $error] = executeCli(['documentation:sync', '--unexpected'], $project);
     expect($status !== 0 && str_contains($error, 'ne prend pas'), 'Documentation must reject unapproved options');
+
     // The local developer site is a separate explicit operation.
     $builderCommand = $backend.'/vendor/symsvel-framework/tooling/src/Command';
     mkdir($builderCommand, 0775, true);

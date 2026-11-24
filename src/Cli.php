@@ -46,7 +46,7 @@ Usage:
   symsvel make:module <name> [--scopes=back,bo,app,front] [--vendor=symsvel-framework] [--workspace=path]
   symsvel module:migrate [MonModule] [--workspace=path]
   symsvel require <package> [constraint] [--bootstrap]
-  symsvel update [bo|app|front|package]
+  symsvel update [back|bo|app|front|package]
   symsvel remove <package>
   symsvel --version
 
@@ -60,7 +60,7 @@ HELP;
 
     private static function version(): int
     {
-        echo "SymSvel CLI 0.2.1".PHP_EOL;
+        echo "SymSvel CLI 0.3.0".PHP_EOL;
         return 0;
     }
 
@@ -126,7 +126,7 @@ HELP;
             throw new \RuntimeException('Destination déjà existante : '.$directory.' (aucune suppression automatique).');
         }
         self::assertRequirements(true, true);
-        $create = ['composer', 'create-project'];
+        $create = ['composer', 'create-project', '--prefer-source', '--keep-vcs', '--no-install'];
         if ($dev) {
             // Resolve the skeleton directly from GitHub, bypassing potentially stale Satis metadata.
             $create[] = '--repository={"type":"vcs","url":"https://github.com/Symsvel-Framework/symsvel-back.git"}';
@@ -142,6 +142,9 @@ HELP;
             throw new \RuntimeException('Projet créé, mais bin/console introuvable. Destination conservée : '.$directory);
         }
         try {
+            // Keep only the skeleton as a source checkout. Dependencies retain
+            // normal dist installation rather than cloning every Git repository.
+            self::run(['composer', 'install', '--prefer-dist', '--no-interaction'], $backend);
             self::persistProjectChannel($backend, $dev ? 'dev' : 'stable');
             if ($dev) {
                 // The initial skeleton has already been created. Further Composer
@@ -156,6 +159,17 @@ HELP;
                 if (!is_file($backend.'/vendor/symsvel-framework/tooling/bin/symsvel-composer-transaction.php')) {
                     throw new \RuntimeException('Tooling development checkout missing Composer transaction launcher.');
                 }
+            }
+            // The original Composer source checkout is still available, even
+            // after Composer has generated project-specific files and constraints.
+            self::run([PHP_BINARY, 'scripts/symsvel-composer-transaction.php', 'record-back'], $backend);
+            // Only this newly created directory can contain the upstream Git.
+            // The maintenance command never removes application Git metadata.
+            if (file_exists($backend.'/.git') || is_link($backend.'/.git')) {
+                if (!is_dir($backend.'/.git') || is_link($backend.'/.git')) {
+                    throw new \RuntimeException('Métadonnées Git natives Back non fiables.');
+                }
+                self::run(['rm', '-rf', '--', $backend.'/.git'], $backend);
             }
             // Defer builds from the first component clone through native module installation.
             $previousDefer = getenv('SYMSVEL_DEFER_BUILDS');
@@ -587,6 +601,24 @@ HELP;
 
     private static function update(array $args): int
     {
+        // The Back skeleton is not a Composer dependency of itself.
+        if (($args[0] ?? null) === 'back') {
+            if (count($args) !== 1) {
+                throw new \RuntimeException('symsvel update back ne prend pas d’argument supplémentaire.');
+            }
+            self::assertRequirements(true);
+            $backend = self::findBackend(getcwd());
+            if ($backend === null) {
+                throw new \RuntimeException('Projet SymSvel introuvable (composer.json + bin/console).');
+            }
+            self::readProjectChannel($backend);
+            $launcher = $backend.'/scripts/symsvel-composer-transaction.php';
+            if (!is_file($launcher)) {
+                throw new \RuntimeException('Lanceur transactionnel absent : '.$launcher);
+            }
+            self::run([PHP_BINARY, $launcher, 'update-back'], $backend);
+            return 0;
+        }
         // Component names are reserved CLI targets, not Composer packages.
         // Delegate lifecycle orchestration to Tooling, which owns installation,
         // module synchronization, builds and rollback.

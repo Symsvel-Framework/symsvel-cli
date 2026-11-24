@@ -61,3 +61,7 @@ Les crash-tests d'installation sur le workspace XT vierge ont abouti avec **Post
 ## Branches de développement (12 novembre 2026)
 
 Le canal `dev` utilise désormais les branches Git `dev` pour le squelette Back, Core, Tooling et les modules natifs. Composer désigne cette branche par la contrainte `dev-dev`, tandis que les composants BO/App/Front sont clonés avec `git --branch dev`. Le canal stable reste inchangé. Les modules natifs sont toujours déterminés par `config/symsvel-native-modules.json`, et non par une liste codée en dur dans la CLI. Le changement doit être validé en CI et par une installation XT neuve.
+
+## Provenance du squelette Back
+
+La création conserve le checkout source Composer (`--prefer-source --keep-vcs --no-install`) le temps d'enregistrer, via Tooling, la révision exacte du squelette officiel, les empreintes de ses fichiers Git natifs et son manifeste Composer de référence dans `backend/.symsvel/components.json` (clé `back`). Les dépendances sont installées séparément par `composer install --prefer-dist` ; la CLI retire ensuite le Git upstream dans le seul répertoire qu'elle vient de créer ; les Git applicatifs restent indépendants. Un fallback Composer vers une archive sans provenance Git est refusé explicitement plutôt que d'enregistrer une référence approximative. Le canal n'est jamais changé par `symsvel update back`. Les anciens projets sans cette référence doivent être traités séparément ; leur mise à jour automatique est refusée.

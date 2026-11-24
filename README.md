@@ -43,7 +43,7 @@ après l'installation des modules natifs, avant l'ouverture du Setup Wizard. Pou
 actualiser ensuite les pages : `symsvel documentation:build-dev`. Cette opération
 ne publie aucun guide privé `admin` ou `user` et n'exporte rien vers le VPS.
 
-Le canal est choisi **à la création** et écrit dans `backend/.symsvel/project.json` : `stable` par défaut, `dev` avec `--dev`. Il est indépendant de `APP_ENV`. Les commandes de maintenance exigent une provenance valide et ne déduisent pas automatiquement un canal pour un ancien projet. Le canal `dev` récupère `dev-dev` pour Back, Core et Tooling lors de la création ; les modules natifs restent sur `dev-main` (branche Git `main`). Pour les packages SymSvel ajoutés sans contrainte explicite, la maintenance conserve provisoirement la résolution `dev-main` ; une contrainte fournie par l'utilisateur est conservée. Voir [le contrat de provenance et le protocole XT](docs/reference/provenance.md).
+Le canal est choisi **à la création** et écrit dans `backend/.symsvel/project.json` : `stable` par défaut, `dev` avec `--dev`. Il est indépendant de `APP_ENV`. Les commandes de maintenance exigent une provenance valide et ne déduisent pas automatiquement un canal pour un ancien projet. Le canal `dev` récupère `dev-dev` pour Back, Core et Tooling lors de la création ; les modules natifs utilisent également `dev-dev` (branche Git `dev`). Pour les packages SymSvel ajoutés sans contrainte explicite, la maintenance conserve le canal de provenance ; une contrainte fournie par l'utilisateur est conservée. Voir [le contrat de provenance et le protocole XT](docs/reference/provenance.md).
 
 ## Maintenance sélective
 
@@ -57,6 +57,8 @@ symsvel update bo
 Les opérations de packages utilisent le **lanceur transactionnel Composer du Tooling**, sans réimplémentation dans la CLI. Les commandes Composer natives ne sont pas interceptées. `symsvel update bo|app|front` utilise le cycle de vie natif des interfaces : analyse des fichiers gérés, préservation des modifications locales non conflictuelles, refus des collisions. Ce parcours est distinct de `symsvel update <package>` et de la commande Symfony globale `symsvel:update`.
 
 Le canal `dev` ne garantit pas à lui seul que GitHub/Satis est accessible : les tests d'intégration réseau réels font partie des crash-tests XT. Les restaurations BDD ne sont garanties que lorsque le checkpoint est effectivement disponible, notamment avec PostgreSQL ou SQLite. Voir [la documentation transactionnelle du Tooling](https://github.com/Symsvel-Framework/symsvel-tooling/blob/main/docs/composer-transactions.md).
+
+La commande `symsvel update back` met à jour le squelette natif du backend via Tooling, avec contrôle de provenance, détection de conflits et rollback transactionnel. Elle ne fait aucun merge Git dans le projet. Voir la [référence](docs/reference/commandes.md).
 
 ## Setup et génération de modules
 
@@ -101,8 +103,6 @@ Les workflows de ce dépôt public s'exécutent sur **GitHub-hosted Ubuntu 24.04
 
 Les runners auto-hébergés du mainteneur restent réservés à `symsvel-packages` et `symsvel-recipes` (privés). Les CI et les crash-tests locaux sont des validations distinctes.
 
-
----
 
 ## Licence MIT et contributions
 

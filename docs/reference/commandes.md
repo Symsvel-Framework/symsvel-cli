@@ -15,7 +15,7 @@ La CLI est le point d'entrée pour créer et maintenir un projet. Cette référe
 | `symsvel make:module <name>` | Générer un module normalisé |
 | `symsvel module:migrate [MonModule]` | Déléguer au Tooling la génération d'une migration pour un module (générateur Tooling en cours) |
 | `symsvel require <package> [constraint]` | Installer un package |
-| `symsvel update [bo|app|front|package]` | Mettre à jour sélectivement |
+| `symsvel update [back|bo|app|front|package]` | Mettre à jour sélectivement |
 | `symsvel remove <package>` | Désinstaller un package |
 
 ## Exemples
@@ -68,7 +68,12 @@ des modules : elle rassemble leurs documents déclarés dans
 Le Setup, l'installation initiale, le build Svelte et `symsvel update`
 n'invoquent jamais implicitement ce traitement. Ni Python, ni pip,
 ni MkDocs ne sont installés. Le BO consomme le corpus uniquement par
-un endpoint authentifié du module propriétaire. Le test smoke vérifie le routage CLI sans publier l'index privé pendant l'installation.
+un endpoint authentifié du module propriétaire. Le test smoke vérifie
+le routage CLI sans publier l'index privé pendant l'installation.
+
+### Mise à jour du squelette Back
+
+`symsvel update back` délègue au lanceur transactionnel de Tooling, sans démarrer Symfony. Il est distinct de `symsvel update` (dépendances Composer) et de la mise à jour d'un module. Le canal du projet sélectionne la source officielle ; les fichiers natifs sont comparés à leur provenance, les modifications locales non conflictuelles sont conservées. Composer résout le lock du projet et un audit bloquant précède la validation de la transaction. Aucun Git applicatif n'est modifié. Les projets sans provenance Back fiable et les conflits sont refusés. À utiliser en développement, avant publication Git du projet ; le déploiement VPS reste indépendant.
 
 Le **site MkDocs développeur** suit un cycle distinct : `create-project`
 le construit dès l'installation des composants, puis le reconstruit après
@@ -82,6 +87,6 @@ Seules les pages de scope
 `dev` sont copiées dans `dev-doc/docs/symsvel/`, jamais les guides
 `admin` ou `user`. Le site statique demeure strictement local.
 
-### Préparation release CLI `v0.2.0` (20/11/2026)
+## Release v0.3.0 (24/11/2026)
 
-Le tag `v0.2.0` a été posé le 20/11/2026. Les correctifs du build MkDocs et de son rafraîchissement sont publiés sous `v0.2.1` ; la CLI doit donc annoncer `SymSvel CLI 0.2.1` via `symsvel --version` et le smoke test contrôle cette valeur. La branche de développement conserve son suffixe `-dev`. Le smoke test vérifie la sortie exacte. La publication du tag et de la GitHub Release reste distincte du commit et doit être vérifiée avant le CT utilisateur sans `--dev`.
+Conserve `documentation:build-dev` de la v0.2.1, ajoute `update back` et l'enregistrement de provenance native à la création. Le smoke test contrôle la version annoncée et les délégations. La publication doit suivre les composants compatibles et leurs CI vertes. CT stable sans `--dev` distinct.
