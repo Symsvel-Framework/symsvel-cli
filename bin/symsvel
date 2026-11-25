@@ -3,6 +3,7 @@
 
 declare(strict_types=1);
 
+require dirname(__DIR__).'/src/RuntimePermissions.php';
 require dirname(__DIR__).'/src/Cli.php';
 
 exit(SymSvelCli\Cli::main(array_slice($argv, 1)));
