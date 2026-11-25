@@ -44,11 +44,23 @@ try {
     // Existing warmed cache and new directories created after initial ACLs.
     runAclTest(['sudo', '-n', '-u', $http, 'mkdir', $root.'/var/cache/dev/twig/7d']);
     runAclTest(['sudo', '-n', '-u', $http, 'touch', $root.'/var/cache/dev/twig/old.php']);
-    mkdir($root.'/var/cache/dev_new', 0755);
+    runAclTest(['sudo', '-n', '-u', $http, 'sh', '-c', 'printf "HTTP" >> "$1"', 'sh', $root.'/var/cache/dev/twig/old.php']);
+    check(str_ends_with((string) file_get_contents($root.'/var/cache/dev/twig/old.php'), 'HTTP'), 'HTTP must write existing cache');
+    // Symfony/Twig mkdir requests 0777; Linux default ACLs are masked
+    // by the requested group bits, not by umask when a default ACL exists.
+    mkdir($root.'/var/cache/dev_new', 0777);
     runAclTest(['sudo', '-n', '-u', $http, 'mkdir', $root.'/var/cache/dev_new/twig']);
     runAclTest(['sudo', '-n', '-u', $http, 'touch', $root.'/var/log/dev.log']);
     check(file_put_contents($root.'/var/log/dev.log', "CLI\n", FILE_APPEND) !== false, 'CLI must write HTTP-created log');
     check(mkdir($root.'/var/cache/dev_new/twig/cli'), 'CLI must write HTTP-created directory');
+    // Mimic Twig's temporary-file publication and cross-user invalidation.
+    runAclTest(['sudo', '-n', '-u', $http, 'sh', '-c', 'p=$(mktemp "$1/cache.XXXXXX") && printf "compiled" > "$p" && mv "$p" "$1/compiled.php" && chmod 644 "$1/compiled.php"', 'sh', $root.'/var/cache/dev_new/twig']);
+    check(file_get_contents($root.'/var/cache/dev_new/twig/compiled.php') === 'compiled', 'CLI must read HTTP-published cache');
+    check(unlink($root.'/var/cache/dev_new/twig/compiled.php'), 'CLI must invalidate HTTP-published cache');
+    if (PHP_OS_FAMILY === 'Linux') {
+        mkdir($root.'/var/cache/restricted', 0755);
+        runAclTest(['sudo', '-n', '-u', $http, 'test', '!', '-w', $root.'/var/cache/restricted']);
+    }
     runAclTest(['sudo', '-n', '-u', $http, 'test', '!', '-w', $root.'/var/app.sqlite']);
     symlink($root.'/var/app.sqlite', $root.'/var/cache/outside');
     $refused = false;

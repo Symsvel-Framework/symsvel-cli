@@ -103,9 +103,11 @@ final class RuntimePermissions
         // (which creates a sibling of the environment cache under var/cache).
         foreach ([$cli, $http] as $account) {
             if (PHP_OS_FAMILY === 'Darwin') {
-                $principal = 'user:'.$account['name'].' allow read,write,append,delete';
+                $principal = 'user:'.$account['name'].' allow read,write,append,delete,writeattr';
                 foreach (array_chunk($directories, 64) as $chunk) {
                     self::command(['chmod', '+a', $principal.',file_inherit,directory_inherit', ...$chunk]);
+                    // Search and deletion of children are directory rights only.
+                    self::command(['chmod', '+a', 'user:'.$account['name'].' allow search,delete_child,directory_inherit', ...$chunk]);
                 }
                 foreach (array_chunk($files, 64) as $chunk) {
                     self::command(['chmod', '+a', $principal, ...$chunk]);
