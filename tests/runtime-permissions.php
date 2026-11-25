@@ -19,8 +19,12 @@ function runAclTest(array $args): void
     check(is_resource($process) && proc_close($process) === 0, 'Failed: '.implode(' ', $args));
 }
 
-check(RuntimePermissions::workerIds(" 0 php-fpm php-fpm: master process\n 33 php-fpm8.4 php-fpm: pool www\n 33 /opt/php-fpm php-fpm: pool www\n 999 bash php-fpm: pool bogus\n 44 php-fpm php-fpm: pool other\n") === [33, 44], 'Worker parsing and deduplication');
-check(RuntimePermissions::workerIds("0 php-fpm php-fpm: master process\n") === [], 'Master must not be selected');
+// Fixtures use the exact two-column contract of ps -axww -o uid= -o args=.
+// The Darwin CT reported UID 70 with the title "php-fpm: pool www";
+// comm contained the truncated title "php-fpm: pool ww", so it is no longer requested.
+check(RuntimePermissions::workerIds("    0 php-fpm: master process (/opt/homebrew/etc/php/8.4/php-fpm.conf)\n   70 php-fpm: pool www\n   70 php-fpm: pool www\n") === [70], 'Darwin Homebrew worker regression');
+check(RuntimePermissions::workerIds("0 php-fpm: master process\n33 php-fpm: pool www\n33 php-fpm8.4: pool www\n999 bash php-fpm: pool bogus\n44 php-fpm: pool other\n") === [33, 44], 'Linux workers, deduplication and ambiguity');
+check(RuntimePermissions::workerIds("0 php-fpm: master process\n0 php-fpm: pool root\n33 grep php-fpm: pool www\n") === [], 'Master, root and unrelated commands must not be selected');
 
 // Real multi-user test on CI; no sudo or account creation in product code.
 $http = getenv('SYMSVEL_ACL_TEST_HTTP_USER');
@@ -39,7 +43,26 @@ try {
     file_put_contents($root.'/var/cache/dev/twig/old.php', '<?php // old');
     file_put_contents($root.'/var/app.sqlite', 'private');
     chmod($root.'/var/app.sqlite', 0600);
-    RuntimePermissions::prepare($root, $http);
+    // Exercise automatic selection, not only the explicit-account path.
+    // A fixture ps verifies the actual arguments and returns native worker titles;
+    // ACL mutations below remain real on each OS.
+    $account = posix_getpwnam($http);
+    check($account !== false && $account['uid'] > 0, 'HTTP test account missing');
+    mkdir($root.'/bin', 0755);
+    $ps = $root.'/bin/ps';
+    file_put_contents($ps, "#!/bin/sh\n[ \"\$#\" -eq 5 ] && [ \"\$1\" = '-axww' ] && [ \"\$2\" = '-o' ] && [ \"\$3\" = 'uid=' ] && [ \"\$4\" = '-o' ] && [ \"\$5\" = 'args=' ] || exit 64\nprintf '%s\\n' '0 php-fpm: master process' '".$account['uid']." php-fpm: pool www' '".$account['uid']." php-fpm: pool www'\n");
+    chmod($ps, 0755);
+    $oldPath = getenv('PATH');
+    $oldHttpUser = getenv('SYMSVEL_HTTP_USER');
+    try {
+        putenv('PATH='.$root.'/bin'.PATH_SEPARATOR.(string) $oldPath);
+        putenv('SYMSVEL_HTTP_USER');
+        $message = RuntimePermissions::prepare($root);
+        check(str_contains($message, 'ACL runtime CLI/HTTP :') && str_contains($message, ' / '.$http.' ('), 'Automatic detection must actually apply ACLs: '.$message);
+    } finally {
+        putenv($oldPath === false ? 'PATH' : 'PATH='.$oldPath);
+        putenv($oldHttpUser === false ? 'SYMSVEL_HTTP_USER' : 'SYMSVEL_HTTP_USER='.$oldHttpUser);
+    }
     RuntimePermissions::prepare($root, $http);
     // Existing warmed cache and new directories created after initial ACLs.
     runAclTest(['sudo', '-n', '-u', $http, 'mkdir', $root.'/var/cache/dev/twig/7d']);

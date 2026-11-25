@@ -12,7 +12,7 @@ final class RuntimePermissions
     {
         $ids = [];
         foreach (preg_split('/\R/', $processes) ?: [] as $line) {
-            if (preg_match('~^\s*(\d+)\s+(?:\S*/)?php-fpm(?:[0-9.]+)?\s+php-fpm(?:[0-9.]+)?: pool\s+~', $line, $match)
+            if (preg_match('~^\s*(\d+)\s+php-fpm(?:[0-9.]+)?: pool\s+\S.*$~D', $line, $match)
                 && (int) $match[1] > 0) {
                 $ids[] = (int) $match[1];
             }
@@ -52,7 +52,9 @@ final class RuntimePermissions
                 throw new \RuntimeException('Compte HTTP inexistant ou privilégié : '.$httpUser);
             }
         } else {
-            $ids = self::workerIds(self::command(['ps', '-axo', 'uid=,comm=,args=']));
+            // Darwin comm is a truncated process title, not a reliable executable name.
+            // Request only effective UID and full, untruncated arguments on both systems.
+            $ids = self::workerIds(self::command(['ps', '-axww', '-o', 'uid=', '-o', 'args=']));
             if ($ids === []) {
                 return 'Aucun worker PHP-FPM détecté ; si le serveur HTTP utilise un autre compte, exécutez symsvel permissions:fix --http-user=COMPTE.';
             }
