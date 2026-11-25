@@ -14,6 +14,7 @@ final class Cli
                 'help', '--help', '-h' => self::help(),
                 '--version', '-V', 'version' => self::version(),
                 'doctor' => self::doctor($args),
+                'permissions:fix' => self::fixPermissions($args),
                 'create-project' => self::createProject($args),
                 'setup' => self::setup($args),
                 'setup:finalize' => self::finalizeSetup($args),
@@ -38,6 +39,7 @@ SymSvel CLI (development)
 
 Usage:
   symsvel doctor
+  symsvel permissions:fix [--http-user=COMPTE]  # ACL locales cache/log
   symsvel setup               # Lance le Wizard local sous l'utilisateur CLI
   symsvel setup:finalize
   symsvel documentation:sync   # Index privé BO, maintenance manuelle
@@ -60,7 +62,7 @@ HELP;
 
     private static function version(): int
     {
-        echo "SymSvel CLI 0.3.0".PHP_EOL;
+        echo "SymSvel CLI 0.3.1".PHP_EOL;
         return 0;
     }
 
@@ -87,6 +89,20 @@ HELP;
         }
         echo "Symfony CLI : ".(self::available('symfony') ? 'disponible (facultative)' : 'absente (facultative)').PHP_EOL;
         return in_array(false, $requirements, true) ? 1 : 0;
+    }
+
+    private static function fixPermissions(array $args): int
+    {
+        if (count($args) > 1 || ($args !== [] && !str_starts_with($args[0], '--http-user='))) {
+            throw new \RuntimeException('Usage : symsvel permissions:fix [--http-user=COMPTE]');
+        }
+        $backend = self::findBackend(getcwd());
+        if ($backend === null) {
+            throw new \RuntimeException('Projet SymSvel introuvable.');
+        }
+        $user = $args === [] ? null : substr($args[0], strlen('--http-user='));
+        echo '[symsvel] '.RuntimePermissions::prepare($backend, $user).PHP_EOL;
+        return 0;
     }
 
     private static function supportsAnsiColors(): bool
@@ -142,6 +158,12 @@ HELP;
             throw new \RuntimeException('Projet créé, mais bin/console introuvable. Destination conservée : '.$directory);
         }
         try {
+            // Install inheritable runtime ACLs before Composer can warm the cache.
+            try {
+                echo '[symsvel] '.RuntimePermissions::prepare($backend).PHP_EOL;
+            } catch (\RuntimeException $error) {
+                fwrite(STDERR, '[symsvel] ACL locales : '.$error->getMessage().' Exécutez symsvel permissions:fix avant utilisation HTTP.'.PHP_EOL);
+            }
             // Keep only the skeleton as a source checkout. Dependencies retain
             // normal dist installation rather than cloning every Git repository.
             self::run(['composer', 'install', '--prefer-dist', '--no-interaction'], $backend);

@@ -5,6 +5,7 @@ La CLI est le point d'entrée pour créer et maintenir un projet. Cette référe
 | Commande | Rôle |
 | --- | --- |
 | `symsvel doctor` | Contrôler les prérequis locaux |
+| `symsvel permissions:fix [--http-user=COMPTE]` | Réparer les ACL locales du cache et des logs |
 | `symsvel --help` | Afficher l'aide |
 | `symsvel --version` | Afficher la version |
 | `symsvel create-project --components=all|bo|app|front` | Créer un projet et lancer le Setup |
@@ -90,3 +91,21 @@ Seules les pages de scope
 ## Release v0.3.0 (24/11/2026)
 
 Conserve `documentation:build-dev` de la v0.2.1, ajoute `update back` et l'enregistrement de provenance native à la création. Le smoke test contrôle la version annoncée et les délégations. La publication doit suivre les composants compatibles et leurs CI vertes. CT stable sans `--dev` distinct.
+
+## Permissions runtime locales (25/11/2026)
+
+Lors d'un `create-project`, la CLI prépare des ACL nominatives sur `backend/var/cache` et `backend/var/log` **avant** le premier `composer install` (donc avant le warmup Symfony). Elle détecte un unique compte de worker PHP-FPM actif, distinct du compte CLI ; un master root n'est jamais sélectionné. Sur un poste de développement individuel, on peut définir `SYMSVEL_HTTP_USER` avant la création pour sélectionner explicitement le compte du projet. En cas de plusieurs pools, de serveur arrêté, de détection non disponible ou d'ACL refusée, la CLI affiche un diagnostic ; aucune élévation automatique de privilèges ni ouverture globale des droits n'est tentée.
+
+Pour un projet existant, depuis le workspace ou le backend :
+
+```bash
+symsvel permissions:fix --http-user=COMPTE_HTTP
+```
+
+Remplacer `COMPTE_HTTP` par le véritable utilisateur du pool PHP du projet. Sans option, la commande utilise `SYMSVEL_HTTP_USER` ou la détection PHP-FPM. macOS utilise `chmod +a` et Linux `setfacl` (paquet système `acl`, à installer si nécessaire). L'extension PHP POSIX est requise pour cette opération. Les ACL de répertoires sont héritables par les nouveaux fichiers et sous-répertoires, notamment lors des warmups et `cache:clear`. Les ACL existantes ne sont pas supprimées ; si le compte CLI ne possède pas les fichiers à réparer, l'opération peut échouer et nécessite une intervention ciblée de l'administrateur local. Exécuter la CLI comme développeur, jamais root. Aucun changement de `.env.local`, secrets, base SQLite, métadonnées privées ou autre dossier `var` ; les liens symboliques et fichiers à liens physiques multiples sont refusés. Les droits des ancêtres du workspace doivent permettre l'accès HTTP. Ne pas utiliser sur un serveur partagé ou de production : la politique de droits de l'hébergeur reste indépendante (ADR 0006).
+
+Régression : CT stable du 25/11/2026, Twig incapable de créer `var/cache/dev/twig/7d` lors du mail de confirmation App ; correction manuelle des ACL validée par le mainteneur. La CI vérifie le partage réel avec deux comptes sur Linux et macOS, l'héritage et l'exclusion de SQLite. Un nouveau CT de zéro, avec envoi de mail et mise à jour, reste nécessaire avant publication.
+
+**Limites des ACL et régression CI :** macOS accorde également `writeattr` pour les dates des fichiers et `search,delete_child` aux répertoires. Sous Linux, le masque POSIX hérité est limité par le mode demandé lors de la création ou par un `chmod` ultérieur : les répertoires créés en `0777` par Symfony/Twig héritent des droits nominatifs, tandis qu'un mode explicite `0755` peut retirer l'écriture partagée. La CLI ne modifie ni l'umask global ni les modes imposés par une application ; `permissions:fix` répare les entrées existantes accessibles au propriétaire. Les tests couvrent la modification d'un fichier existant, la publication atomique et l'invalidation d'un cache, les logs et le cas restrictif Linux.
+
+**Second CT macOS (25/11/2026) :** le champ `comm` de `ps` affichait un titre de processus tronqué (`php-fpm: pool ww`) et empêchait la détection automatique. La CLI utilise désormais `ps -axww -o uid= -o args=` et identifie les titres complets des workers, en excluant le master et les UID root. Le test reprend les titres constatés sur Homebrew et couvre la détection automatique jusqu'à la pose réelle des ACL avec une sortie `ps` contrôlée, sur les deux OS. Un CT réel reste requis pour confirmer la détection sur la machine du mainteneur.

@@ -25,3 +25,28 @@ jobs:
       - run: php -l src/Cli.php
       - run: php -l tests/smoke.php
       - run: php tests/smoke.php
+      - run: php -l src/RuntimePermissions.php
+      - run: php -l tests/runtime-permissions.php
+      - run: php tests/runtime-permissions.php
+
+  runtime-acl:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            http-user: nobody
+          - os: macos-15
+            http-user: _www
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y acl
+      - run: php tests/runtime-permissions.php
+        env:
+          SYMSVEL_ACL_TEST_HTTP_USER: ${{ matrix.http-user }}

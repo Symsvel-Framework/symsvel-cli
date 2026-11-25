@@ -38,6 +38,12 @@ function removeTree(string $path): void
     rmdir($path);
 }
 
+// Runtime ACLs must precede Composer's first cache warmup.
+$permissionSource = (string) file_get_contents(dirname(__DIR__).'/src/Cli.php');
+$aclPosition = strpos($permissionSource, 'RuntimePermissions::prepare($backend)');
+$installPosition = strpos($permissionSource, "self::run(['composer', 'install'");
+expect($aclPosition !== false && $installPosition !== false && $aclPosition < $installPosition, 'ACL preparation must precede Composer install');
+
 // Regression: the explicit post-install module sync must remain inside the
 // SYMSVEL_DEFER_BUILDS scope, otherwise it starts all Svelte builds before setup.
 $cliSource = (string) file_get_contents(dirname(__DIR__).'/src/Cli.php');
@@ -68,7 +74,7 @@ mkdir($temporary, 0775, true);
 
 try {
     [$status, $out] = executeCli(['--version'], $temporary);
-    expect($status === 0 && trim($out) === 'SymSvel CLI 0.3.0', 'Stable CLI must report the matching release version');
+    expect($status === 0 && trim($out) === 'SymSvel CLI 0.3.1', 'Stable CLI must report the matching release version');
 
     [$status, $out] = executeCli(['--help'], $temporary);
     expect($status === 0 && str_contains($out, 'make:module'), 'Help must advertise make:module');
