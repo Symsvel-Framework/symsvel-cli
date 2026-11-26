@@ -299,7 +299,7 @@ HELP;
                 continue;
             }
             $url = rtrim((string) ($repository['url'] ?? ''), '/');
-            if ($url === 'https://packages.xavier-tezza.fr') {
+            if ($url === 'https://packages.symsvel.com') {
                 unset($repositories[$key]);
             }
         }
