@@ -72,3 +72,5 @@ jobs:
       - run: php tests/windows-smoke.php
       - run: .\bin\symsvel.cmd --version
       - run: .\bin\symsvel.cmd doctor
+      - name: Verify real scoped NTFS ACLs for a distinct user
+        run: ./tests/windows-runtime-permissions.ps1

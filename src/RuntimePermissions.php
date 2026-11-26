@@ -131,18 +131,121 @@ final class RuntimePermissions
         return 'ACL runtime CLI/HTTP : '.$cli['name'].' / '.$http['name'].' (var/cache et var/log).';
     }
 
-    /** Windows local development under the invoking account; no ACL escalation. */
+    /** Windows: explicit account, scoped NTFS ACLs; no automatic service guessing. */
     private static function prepareWindows(string $backend, ?string $httpUser): string
     {
-        $configured = getenv('SYMSVEL_HTTP_USER');
-        if ($httpUser !== null || ($configured !== false && $configured !== '')) {
-            throw new \RuntimeException('ACL NTFS pour un compte HTTP distinct non qualifiées ; configurez des droits ciblés avec votre administrateur Windows.');
-        }
         if (is_link($backend) || !is_dir($backend) || !is_writable($backend)) {
             throw new \RuntimeException('Backend Windows non fiable ou non accessible en écriture.');
         }
+        $configured = getenv('SYMSVEL_HTTP_USER');
+        $httpUser ??= $configured !== false && $configured !== '' ? $configured : null;
+        if ($httpUser === null) {
+            return 'Windows : Setup sous le compte CLI, ACL NTFS inchangées. Pour un compte HTTP distinct, utilisez permissions:fix --http-user=COMPTE.';
+        }
+        if (trim($httpUser) === '' || preg_match('/[\x00-\x1F\x7F]/', $httpUser)) {
+            throw new \RuntimeException('Compte HTTP Windows invalide.');
+        }
+        $windows = getenv('SystemRoot');
+        $powershell = $windows === false ? '' : $windows.'/System32/WindowsPowerShell/v1.0/powershell.exe';
+        if (!is_file($powershell)) {
+            throw new \RuntimeException('Windows PowerShell natif introuvable.');
+        }
+        // Constant script: the two user-controlled values are environment
+        // variables, never interpolated in a PowerShell or cmd command line.
+        $script = <<<'POWERSHELL'
+$ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
+$backend = $env:SYMSVEL_ACL_BACKEND
+$account = $env:SYMSVEL_ACL_HTTP_ACCOUNT
+$cli = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
+try {
+    $http = ([System.Security.Principal.NTAccount]::new($account)).Translate([System.Security.Principal.SecurityIdentifier])
+} catch { throw 'Invalid or unknown HTTP account.' }
+if ($cli.Equals($http)) { Write-Output 'same-account'; exit 0 }
+# A real user, not Everyone, an alias, a service group or a privileged system identity.
+$sidText = $http.Value
+$user = @(Get-CimInstance -ClassName Win32_UserAccount -Filter "SID='$sidText'")
+if ($user.Count -ne 1 -or $user[0].Disabled -or $sidText -match '-500$') {
+    throw 'Invalid HTTP account: select an enabled, non-system Windows user.'
+}
+function CheckedItem([string]$path) {
+    $item = Get-Item -LiteralPath $path -Force
+    if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -or $item.LinkType) {
+        throw ('Link or reparse point refused: ' + $path)
+    }
+    return $item
+}
+function CheckedDirectory([string]$path) {
+    if (-not [IO.Directory]::Exists($path)) {
+        [void][IO.Directory]::CreateDirectory($path)
+    }
+    $item = CheckedItem $path
+    if (-not $item.PSIsContainer) { throw ('Not a directory: ' + $path) }
+    return $item
+}
+$entries = [System.Collections.Generic.List[object]]::new()
+function Scan($item) {
+    $acl = Get-Acl -LiteralPath $item.FullName
+    $entries.Add([pscustomobject]@{ Item = $item; Original = $acl })
+    if ($item.PSIsContainer) {
+        foreach ($child in Get-ChildItem -LiteralPath $item.FullName -Force) {
+            Scan (CheckedItem $child.FullName)
+        }
+    }
+}
+$root = CheckedItem $backend
+if (-not $root.PSIsContainer) { throw 'Invalid backend.' }
+$var = CheckedDirectory ([IO.Path]::Combine($root.FullName, 'var'))
+foreach ($name in @('cache','log')) {
+    Scan (CheckedDirectory ([IO.Path]::Combine($var.FullName, $name)))
+}
+# No mutation until all entries and their original ACLs have been checked.
+$changed = [System.Collections.Generic.List[object]]::new()
+try {
+    foreach ($entry in $entries) {
+        $item = CheckedItem $entry.Item.FullName
+        $acl = Get-Acl -LiteralPath $item.FullName
+        $inherit = [System.Security.AccessControl.InheritanceFlags]::None
+        if ($item.PSIsContainer) {
+            $inherit = [System.Security.AccessControl.InheritanceFlags]'ContainerInherit, ObjectInherit'
+        }
+        foreach ($sid in @($cli, $http)) {
+            $rule = [System.Security.AccessControl.FileSystemAccessRule]::new(
+                $sid, [System.Security.AccessControl.FileSystemRights]::Modify,
+                $inherit, [System.Security.AccessControl.PropagationFlags]::None,
+                [System.Security.AccessControl.AccessControlType]::Allow)
+            $acl.AddAccessRule($rule)
+        }
+        $changed.Add($entry)
+        Set-Acl -LiteralPath $item.FullName -AclObject $acl
+    }
+} catch {
+    $failure = $_
+    $rollbackFailed = $false
+    for ($i = $changed.Count - 1; $i -ge 0; $i--) {
+        try {
+            $item = CheckedItem $changed[$i].Item.FullName
+            Set-Acl -LiteralPath $item.FullName -AclObject $changed[$i].Original
+        } catch { $rollbackFailed = $true }
+    }
+    if ($rollbackFailed) { throw 'NTFS ACL operation failed; rollback incomplete. Inspect the runtime ACLs before continuing.' }
+    throw $failure
+}
+Write-Output 'runtime-acl-applied'
+POWERSHELL;
+        $encoded = base64_encode(iconv('UTF-8', 'UTF-16LE', $script));
+        $result = self::command(
+            [$powershell, '-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand', $encoded],
+            ['SYMSVEL_ACL_BACKEND' => $backend, 'SYMSVEL_ACL_HTTP_ACCOUNT' => $httpUser],
+        );
+        if (trim($result) === 'same-account') {
+            return 'CLI et PHP HTTP : même utilisateur, ACL NTFS inchangées.';
+        }
+        if (!str_contains($result, 'runtime-acl-applied')) {
+            throw new \RuntimeException('Résultat ACL NTFS inattendu.');
+        }
 
-        return 'Windows : Setup sous le compte CLI, ACL NTFS inchangées. Un serveur HTTP exécuté sous un autre compte nécessite une configuration des droits dédiée.';
+        return 'ACL NTFS runtime CLI/HTTP : '.$httpUser.' (var/cache et var/log).';
     }
 
     private static function ensureDirectory(string $path): void
@@ -153,7 +256,7 @@ final class RuntimePermissions
     }
 
     /** @param list<string> $arguments */
-    private static function command(array $arguments): string
+    private static function command(array $arguments, array $environment = []): string
     {
         // Capture to a single temporary stream, avoiding pipe deadlocks.
         $output = tmpfile();
@@ -161,7 +264,8 @@ final class RuntimePermissions
             throw new \RuntimeException('Impossible de préparer la commande ACL.');
         }
         try {
-            $process = proc_open($arguments, [0 => ['file', '/dev/null', 'r'], 1 => $output, 2 => $output], $pipes);
+            $env = $environment === [] ? null : array_merge(getenv() ?: [], $_ENV, $environment);
+            $process = proc_open($arguments, [0 => ['file', PHP_OS_FAMILY === 'Windows' ? 'NUL' : '/dev/null', 'r'], 1 => $output, 2 => $output], $pipes, null, $env);
             if (!is_resource($process)) {
                 throw new \RuntimeException('Impossible de démarrer '.$arguments[0].'.');
             }

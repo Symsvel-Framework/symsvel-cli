@@ -10,3 +10,5 @@ Le job `windows-bootstrap` sur Windows natif teste le lanceur CMD, doctor, la r�
 La détection Windows accepte les scripts CMD/BAT présents sur le PATH sans exiger leur bit exécutable POSIX. Composer PHAR est lancé directement par PHP lorsque disponible (Composer-Setup et setup-php), sans interpoler les arguments dans une commande shell.
 
 La suppression du Git upstream sous Windows traite les objets en lecture seule dans ce seul checkout neuf. Le test Windows crée explicitement un objet en lecture seule. Aucun élargissement des ACL NTFS du projet.
+
+Le job Windows crée un compte HTTP local jetable pour vérifier les ACL NTFS ciblées, leur héritage sur un nouveau fichier, le refus des hardlinks avant toute mutation, la préservation de la base SQLite et la répétabilité. L'exécution CLI normale ne crée aucun compte et ne demande pas de privilèges administrateur ; le compte développeur doit pouvoir modifier les DACL ciblées. Les comptes de service/groupes ne sont pas implicitement sélectionnés.

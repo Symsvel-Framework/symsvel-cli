@@ -33,9 +33,9 @@ try {
     check(str_contains(RuntimePermissions::prepare($root), 'ACL NTFS inchangées'), 'Same-account path must not change ACLs');
     try {
         RuntimePermissions::prepare($root, 'other-account');
-        throw new LogicException('Unqualified cross-account path must fail closed');
+        throw new LogicException('Unknown cross-account path must fail closed');
     } catch (RuntimeException $e) {
-        check(str_contains($e->getMessage(), 'non qualifiées'), 'Wrong diagnostic');
+        check(str_contains($e->getMessage(), 'Invalid or unknown HTTP account'), 'Wrong diagnostic');
     }
     mkdir($root.'/.git/objects', 0775, true);
     file_put_contents($root.'/.git/objects/test', 'test');

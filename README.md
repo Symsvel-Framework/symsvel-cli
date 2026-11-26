@@ -44,7 +44,7 @@ $env:Path = "$HOME\symsvel-cli\bin;$env:Path"
 symsvel.cmd doctor
 ~~~
 
-Ajoutez le dossier bin au PATH utilisateur pour les prochains terminaux. Utilisez le Composer-Setup officiel (composer.bat à côté de composer.phar), Git, Node/npm et un vrai Python accessible via python.exe. Le lanceur natif `symsvel.cmd` ne nécessite pas de modifier la politique d'exécution PowerShell. Ce parcours permet la qualification initiale du doctor ; la création complète et les mises à jour restent en cours de qualification. Le Setup intégré tourne sous le compte CLI ; aucune ACL NTFS n'est modifiée automatiquement. Un serveur HTTP sous un compte distinct nécessite des ACL ciblées, non encore automatisées.
+Ajoutez le dossier bin au PATH utilisateur pour les prochains terminaux. Utilisez le Composer-Setup officiel (composer.bat à côté de composer.phar), Git, Node/npm et un vrai Python accessible via python.exe. Le lanceur natif `symsvel.cmd` ne nécessite pas de modifier la politique d'exécution PowerShell. Ce parcours permet la qualification initiale du doctor ; la création complète et les mises à jour restent en cours de qualification. Le Setup intégré tourne sous le compte CLI ; aucune ACL NTFS n'est modifiée automatiquement. Pour un serveur HTTP exécuté sous un autre compte utilisateur Windows activé, lancez `symsvel.cmd permissions:fix --http-user='MACHINE\utilisateur'` depuis le projet. Seuls `backend/var/cache` et `backend/var/log` reçoivent les droits Modify héritables des deux comptes ; groupes, compte système, liens et chemins redirigés sont refusés. La commande ne modifie pas les ACL de la base, des secrets ou du reste du projet. Ce parcours multi-comptes reste en qualification.
 
 ## 3. Créer un projet
 
