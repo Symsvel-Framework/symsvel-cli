@@ -8,6 +8,10 @@
 
 PHP 8.4+, Composer 2, Git, Node.js, npm et Python 3 (venv et pip). Préparez PostgreSQL, MySQL, MariaDB ou SQLite, ainsi que le pilote PDO correspondant. Symfony CLI est facultative. Aucun Docker imposé.
 
+### Systèmes pris en charge
+
+macOS et Linux sont les parcours validés. Windows natif est en préparation, sans obligation de WSL2 ni Docker ; le parcours WSL2 n'est pas encore qualifié non plus. Consultez le [guide de préparation Windows](https://github.com/Symsvel-Framework/symsvel-back/blob/main/docs/guides/01-getting-started/01a-windows.md) avant toute tentative d'installation sur Windows.
+
 ## 2. Installer la CLI (macOS / Linux)
 
 ~~~bash
