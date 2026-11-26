@@ -39,6 +39,8 @@ try {
     }
     mkdir($root.'/.git/objects', 0775, true);
     file_put_contents($root.'/.git/objects/test', 'test');
+    check(chmod($root.'/.git/objects/test', 0444), 'Prepare read-only Git object');
+    clearstatcache();
     $remove = new ReflectionMethod(Cli::class, 'removeUpstreamGit');
     $remove->invoke(null, $root.'/.git');
     check(!file_exists($root.'/.git'), 'Native Git cleanup failed');

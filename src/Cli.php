@@ -807,6 +807,11 @@ HELP;
             if ($entry->isLink() || (!$entry->isDir() && !$entry->isFile())) {
                 throw new \RuntimeException('Métadonnées Git natives non fiables : '.$file);
             }
+            // Git objects may have the DOS read-only attribute. Only this
+            // fresh upstream checkout is eligible for a scoped retry.
+            if ($entry->isFile() && !is_writable($file) && !@chmod($file, 0666)) {
+                throw new \RuntimeException('Attribut lecture seule Git impossible à retirer : '.$file);
+            }
             if ($entry->isDir() ? !rmdir($file) : !unlink($file)) {
                 throw new \RuntimeException('Suppression des métadonnées Git impossible : '.$file);
             }
