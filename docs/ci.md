@@ -12,3 +12,5 @@ La détection Windows accepte les scripts CMD/BAT présents sur le PATH sans exi
 La suppression du Git upstream sous Windows traite les objets en lecture seule dans ce seul checkout neuf. Le test Windows crée explicitement un objet en lecture seule. Aucun élargissement des ACL NTFS du projet.
 
 Le job Windows crée un compte HTTP local jetable pour vérifier les ACL NTFS ciblées, leur héritage sur un nouveau fichier, le refus des hardlinks avant toute mutation, la préservation de la base SQLite et la répétabilité. L'exécution CLI normale ne crée aucun compte et ne demande pas de privilèges administrateur ; le compte développeur doit pouvoir modifier les DACL ciblées. Les comptes de service/groupes ne sont pas implicitement sélectionnés.
+
+Le processus ACL Windows isole son PSModulePath sur les modules système de Windows PowerShell 5.1, notamment lorsque la CLI est lancée depuis PowerShell 7. Aucun changement de politique d'exécution ni de configuration globale.

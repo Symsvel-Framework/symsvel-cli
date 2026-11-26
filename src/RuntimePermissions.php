@@ -155,6 +155,10 @@ final class RuntimePermissions
         $script = <<<'POWERSHELL'
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
+# A parent PowerShell 7 may export incompatible module search paths.
+# Load only Windows PowerShell's native, system-owned modules.
+$env:PSModulePath = Join-Path $PSHOME 'Modules'
+Import-Module (Join-Path $PSHOME 'Modules/Microsoft.PowerShell.Security/Microsoft.PowerShell.Security.psd1') -ErrorAction Stop
 $backend = $env:SYMSVEL_ACL_BACKEND
 $account = $env:SYMSVEL_ACL_HTTP_ACCOUNT
 $cli = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
