@@ -197,7 +197,7 @@ PHP);
     file_put_contents($backend.'/composer.json', json_encode([
         'require' => ['symsvel-framework/core' => '^1.0'],
         'repositories' => [
-            ['type' => 'composer', 'url' => 'https://packages.xavier-tezza.fr/'],
+            ['type' => 'composer', 'url' => 'https://packages.symsvel.com/'],
             ['type' => 'composer', 'url' => 'https://third-party.example/repository'],
             ['type' => 'vcs', 'url' => 'https://github.com/Symsvel-Framework/symsvel-core.git'],
         ],
