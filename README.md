@@ -51,7 +51,7 @@ symsvel make:module catalogue --scopes=back,bo
 symsvel update
 ~~~
 
-La [référence des commandes](docs/reference/commandes.md) précise les variantes. Après l'installation, ouvrez dev-doc/site/index.html pour parcourir les guides du framework. Les guides Getting Started sont aussi disponibles dans le [dépôt Back](https://github.com/Symsvel-Framework/symsvel-back/tree/main/docs/guides).
+La [référence des commandes](docs/reference/commandes.md) précise les variantes. Après l'installation, ouvrez dev-doc/site/index.html pour parcourir les guides du framework. Les guides Prise en main sont aussi disponibles dans le [dépôt Back](https://github.com/Symsvel-Framework/symsvel-back/tree/main/docs/guides).
 
 ## Mainteneurs
 
