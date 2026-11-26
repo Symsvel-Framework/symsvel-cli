@@ -6,3 +6,5 @@ Les runners du mainteneur ne servent plus ces dépôts publics : ils restent ré
 
 
 Le job `windows-bootstrap` sur Windows natif teste le lanceur CMD, doctor, la résolution Composer et les primitives de bootstrap. Il ne qualifie pas encore le parcours complet, les transactions ou les ACL NTFS multi-comptes. Les jobs Unix existants restent inchangés.
+
+La détection Windows accepte les scripts CMD/BAT présents sur le PATH sans exiger leur bit exécutable POSIX. Composer PHAR est lancé directement par PHP lorsque disponible (Composer-Setup et setup-php), sans interpoler les arguments dans une commande shell.

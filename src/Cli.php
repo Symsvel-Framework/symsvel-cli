@@ -758,7 +758,7 @@ HELP;
             }
             foreach ($extensions as $extension) {
                 $candidate = rtrim($directory, '/\\').DIRECTORY_SEPARATOR.$name.$extension;
-                if (is_file($candidate) && is_executable($candidate)) {
+                if (is_file($candidate) && ($extension !== '.exe' || is_executable($candidate))) {
                     return $candidate;
                 }
             }
@@ -773,6 +773,10 @@ HELP;
      */
     private static function windowsComposer(): ?array
     {
+        $phar = self::windowsExecutable('composer', ['.phar']);
+        if ($phar !== null) {
+            return [PHP_BINARY, $phar];
+        }
         $executable = self::windowsExecutable('composer', ['.exe', '.bat', '.cmd']);
         if ($executable === null) {
             return null;
