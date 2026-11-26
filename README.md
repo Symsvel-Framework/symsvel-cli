@@ -1,5 +1,14 @@
 # SymSvel CLI
 
+<!-- symsvel-brand:start -->
+<p align="center">
+  <a href="https://symsvel.com/"><img src="https://raw.githubusercontent.com/Symsvel-Framework/symsvel-tooling/07264829c404bcaecf1d8ce25c6a71e5beab2ae9/resources/documentation/theme/mark.png" alt="SymSvel Framework" width="48"></a>
+  &nbsp;&nbsp;
+  <a href="https://doc.symsvel.com/"><img src="https://raw.githubusercontent.com/Symsvel-Framework/symsvel-tooling/07264829c404bcaecf1d8ce25c6a71e5beab2ae9/resources/documentation/theme/zeko.webp" alt="Zeko, le gecko SymSvel" width="88"></a>
+</p>
+<p align="center"><a href="https://symsvel.com/">Site officiel</a> · <a href="https://doc.symsvel.com/">Documentation développeur</a></p>
+<!-- symsvel-brand:end -->
+
 **Votre point d'entrée dans SymSvel Framework.** Créez un projet Symfony avec les interfaces SvelteKit de votre choix, puis développez votre code métier.
 
 > SymSvel est en cours de développement. Utilisation à vos risques et périls.
