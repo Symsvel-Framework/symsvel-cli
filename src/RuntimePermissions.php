@@ -23,6 +23,9 @@ final class RuntimePermissions
 
     public static function prepare(string $backend, ?string $httpUser = null): string
     {
+        if (PHP_OS_FAMILY === 'Windows') {
+            return self::prepareWindows($backend, $httpUser);
+        }
         if (!in_array(PHP_OS_FAMILY, ['Darwin', 'Linux'], true)
             || !function_exists('posix_geteuid') || !function_exists('posix_getpwuid')
             || !function_exists('posix_getpwnam')) {
@@ -126,6 +129,20 @@ final class RuntimePermissions
         }
 
         return 'ACL runtime CLI/HTTP : '.$cli['name'].' / '.$http['name'].' (var/cache et var/log).';
+    }
+
+    /** Windows local development under the invoking account; no ACL escalation. */
+    private static function prepareWindows(string $backend, ?string $httpUser): string
+    {
+        $configured = getenv('SYMSVEL_HTTP_USER');
+        if ($httpUser !== null || ($configured !== false && $configured !== '')) {
+            throw new \RuntimeException('ACL NTFS pour un compte HTTP distinct non qualifiées ; configurez des droits ciblés avec votre administrateur Windows.');
+        }
+        if (is_link($backend) || !is_dir($backend) || !is_writable($backend)) {
+            throw new \RuntimeException('Backend Windows non fiable ou non accessible en écriture.');
+        }
+
+        return 'Windows : Setup sous le compte CLI, ACL NTFS inchangées. Un serveur HTTP exécuté sous un autre compte nécessite une configuration des droits dédiée.';
     }
 
     private static function ensureDirectory(string $path): void

@@ -77,7 +77,7 @@ HELP;
             'Git' => self::available('git'),
             'Node.js' => self::available('node'),
             'npm' => self::available('npm'),
-            'Python 3 (MkDocs)' => self::available('python3'),
+            'Python 3 (MkDocs)' => self::available(PHP_OS_FAMILY === 'Windows' ? 'python' : 'python3'),
         ];
         $colors = self::supportsAnsiColors();
         foreach ($requirements as $name => $ok) {
@@ -191,7 +191,7 @@ HELP;
                 if (!is_dir($backend.'/.git') || is_link($backend.'/.git')) {
                     throw new \RuntimeException('Métadonnées Git natives Back non fiables.');
                 }
-                self::run(['rm', '-rf', '--', $backend.'/.git'], $backend);
+                self::removeUpstreamGit($backend.'/.git');
             }
             // Defer builds from the first component clone through native module installation.
             $previousDefer = getenv('SYMSVEL_DEFER_BUILDS');
@@ -722,7 +722,7 @@ HELP;
         if (PHP_VERSION_ID < 80400) {
             throw new \RuntimeException('PHP >= 8.4 requis.');
         }
-        foreach (array_merge(['composer', 'git'], $node ? ['node', 'npm'] : [], $mkdocs ? ['python3'] : []) as $program) {
+        foreach (array_merge(['composer', 'git'], $node ? ['node', 'npm'] : [], $mkdocs ? [PHP_OS_FAMILY === 'Windows' ? 'python' : 'python3'] : []) as $program) {
             if (!self::available($program)) {
                 throw new \RuntimeException('Prérequis manquant : '.$program);
             }
@@ -731,17 +731,93 @@ HELP;
 
     private static function available(string $program): bool
     {
-        $process = proc_open(['/bin/sh', '-c', 'command -v '.escapeshellarg($program).' >/dev/null 2>&1'], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
-        if (!is_resource($process)) {
-            return false;
+        if (PHP_OS_FAMILY !== 'Windows') {
+            $process = proc_open(['/bin/sh', '-c', 'command -v '.escapeshellarg($program).' >/dev/null 2>&1'], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+            if (!is_resource($process)) {
+                return false;
+            }
+            fclose($pipes[1]);
+            fclose($pipes[2]);
+            return proc_close($process) === 0;
         }
-        fclose($pipes[1]);
-        fclose($pipes[2]);
-        return proc_close($process) === 0;
+
+        if ($program === 'composer') {
+            return self::windowsComposer() !== null;
+        }
+
+        return self::windowsExecutable($program, $program === 'npm' ? ['.cmd', '.exe'] : ['.exe']) !== null;
+    }
+
+    /** Search the configured PATH, never the current project directory. */
+    private static function windowsExecutable(string $name, array $extensions): ?string
+    {
+        foreach (explode(PATH_SEPARATOR, (string) getenv('PATH')) as $directory) {
+            $directory = trim($directory, '"');
+            if (!preg_match('~^(?:[A-Za-z]:[/\\\\]|\\\\\\\\)~', $directory)) {
+                continue;
+            }
+            foreach ($extensions as $extension) {
+                $candidate = rtrim($directory, '/\\').DIRECTORY_SEPARATOR.$name.$extension;
+                if (is_file($candidate) && is_executable($candidate)) {
+                    return $candidate;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /** Composer-Setup installs composer.bat next to composer.phar.
+     * Execute the PHAR with PHP, not an interpolated cmd.exe command.
+     * @return list<string>|null
+     */
+    private static function windowsComposer(): ?array
+    {
+        $executable = self::windowsExecutable('composer', ['.exe', '.bat', '.cmd']);
+        if ($executable === null) {
+            return null;
+        }
+        if (strtolower(pathinfo($executable, PATHINFO_EXTENSION)) === 'exe') {
+            return [$executable];
+        }
+        $phar = dirname($executable).DIRECTORY_SEPARATOR.'composer.phar';
+
+        return is_file($phar) ? [PHP_BINARY, $phar] : null;
+    }
+
+    /** Only the fresh upstream checkout is passed here, never project Git. */
+    private static function removeUpstreamGit(string $path): void
+    {
+        if (PHP_OS_FAMILY !== 'Windows') {
+            self::run(['rm', '-rf', '--', $path], dirname($path));
+            return;
+        }
+        // A fresh Git clone has ordinary files and directories in .git.
+        // Refuse links or other unexpected entries rather than following them.
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST,
+        );
+        foreach ($iterator as $entry) {
+            $file = $entry->getPathname();
+            if ($entry->isLink() || (!$entry->isDir() && !$entry->isFile())) {
+                throw new \RuntimeException('Métadonnées Git natives non fiables : '.$file);
+            }
+            if ($entry->isDir() ? !rmdir($file) : !unlink($file)) {
+                throw new \RuntimeException('Suppression des métadonnées Git impossible : '.$file);
+            }
+        }
+        if (!rmdir($path)) {
+            throw new \RuntimeException('Suppression du Git upstream impossible : '.$path);
+        }
     }
 
     private static function run(array $argv, string $cwd, array $environment = []): void
     {
+        if (PHP_OS_FAMILY === 'Windows' && ($argv[0] ?? null) === 'composer') {
+            $composer = self::windowsComposer() ?? throw new \RuntimeException('Composer Windows introuvable : utilisez Composer-Setup (composer.bat et composer.phar).');
+            $argv = [...$composer, ...array_slice($argv, 1)];
+        }
         echo '[symsvel] '.implode(' ', array_map('escapeshellarg', $argv)).PHP_EOL;
         $env = $environment === [] ? null : array_merge(getenv() ?: [], $_ENV, $environment);
         $process = proc_open($argv, [0 => STDIN, 1 => STDOUT, 2 => STDERR], $pipes, $cwd, $env);

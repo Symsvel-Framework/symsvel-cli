@@ -34,6 +34,18 @@ symsvel doctor
 
 Ajoutez la ligne export à votre configuration de shell. Corrigez les prérequis signalés avant de continuer.
 
+### Windows natif (qualification en cours, branche dev)
+
+Dans PowerShell, après installation des prérequis documentés :
+
+~~~powershell
+git clone --branch dev https://github.com/Symsvel-Framework/symsvel-cli.git "$HOME\symsvel-cli"
+$env:Path = "$HOME\symsvel-cli\bin;$env:Path"
+symsvel.cmd doctor
+~~~
+
+Ajoutez le dossier bin au PATH utilisateur pour les prochains terminaux. Utilisez le Composer-Setup officiel (composer.bat à côté de composer.phar), Git, Node/npm et un vrai Python accessible via python.exe. Le lanceur natif `symsvel.cmd` ne nécessite pas de modifier la politique d'exécution PowerShell. Ce parcours permet la qualification initiale du doctor ; la création complète et les mises à jour restent en cours de qualification. Le Setup intégré tourne sous le compte CLI ; aucune ACL NTFS n'est modifiée automatiquement. Un serveur HTTP sous un compte distinct nécessite des ACL ciblées, non encore automatisées.
+
 ## 3. Créer un projet
 
 ~~~bash

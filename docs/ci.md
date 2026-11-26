@@ -4,3 +4,5 @@ Depuis le 22/11/2026, la CI active `.github/workflows/ci.yml` est exécutée sur
 
 Les runners du mainteneur ne servent plus ces dépôts publics : ils restent réservés à `symsvel-packages` et `symsvel-recipes` (privés). CI et crash-tests restent des validations distinctes.
 
+
+Le job `windows-bootstrap` sur Windows natif teste le lanceur CMD, doctor, la résolution Composer et les primitives de bootstrap. Il ne qualifie pas encore le parcours complet, les transactions ou les ACL NTFS multi-comptes. Les jobs Unix existants restent inchangés.
