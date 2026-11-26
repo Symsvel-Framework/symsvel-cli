@@ -41,3 +41,7 @@ Vous pouvez aussi définir SYMSVEL_HTTP_USER avant create-project. Linux nécess
 Après l'installation, ouvrez dev-doc/site/index.html. Pour la reconstruire, lancez symsvel documentation:build-dev.
 
 Pour les procédures internes et les historiques, consultez [les notes de maintenance](../maintainer/).
+
+### Distribution SymSvel
+
+Le canal stable utilise `https://packages.symsvel.com`. En `--dev`, la CLI retire ce dépôt Satis du projet initial pour privilégier les sources GitHub de développement ; le catalogue de développement est accessible sur `https://packages-dev.symsvel.com`.
