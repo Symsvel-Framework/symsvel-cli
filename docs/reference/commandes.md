@@ -1,111 +1,47 @@
-# Référence des commandes SymSvel CLI
+# Commandes SymSvel CLI
 
-La CLI est le point d'entrée pour créer et maintenir un projet. Cette référence doit évoluer dans le même chantier que toute commande ajoutée, modifiée ou supprimée.
+La CLI orchestre les opérations locales ; Composer et Tooling exécutent les opérations techniques.
 
-| Commande | Rôle |
+| Commande | Utilisation |
 | --- | --- |
-| `symsvel doctor` | Contrôler les prérequis locaux |
-| `symsvel permissions:fix [--http-user=COMPTE]` | Réparer les ACL locales du cache et des logs |
-| `symsvel --help` | Afficher l'aide |
-| `symsvel --version` | Afficher la version |
-| `symsvel create-project --components=all|bo|app|front` | Créer un projet et lancer le Setup |
-| `symsvel setup` | Reprendre le Setup Wizard local |
-| `symsvel setup:finalize` | Finaliser l'initialisation |
-| `symsvel documentation:sync` | Assemblage documentaire privé manuel (Tooling), hors Setup et sans MkDocs |
-| `symsvel documentation:build-dev` | Reconstruire localement le site développeur MkDocs depuis les docs des composants et modules installés |
-| `symsvel make:module <name>` | Générer un module normalisé |
-| `symsvel module:migrate [MonModule]` | Déléguer au Tooling la génération d'une migration pour un module (générateur Tooling en cours) |
-| `symsvel require <package> [constraint]` | Installer un package |
-| `symsvel update [back|bo|app|front|package]` | Mettre à jour sélectivement |
-| `symsvel remove <package>` | Désinstaller un package |
+| symsvel doctor | Vérifier les prérequis |
+| symsvel --version | Afficher la version |
+| symsvel create-project --components=all | Créer le projet |
+| symsvel setup | Reprendre le Setup |
+| symsvel setup:finalize | Finaliser la configuration locale |
+| symsvel make:module NOM --scopes=back,bo | Créer un module métier |
+| symsvel module:migrate NOM | Générer les migrations source du module |
+| symsvel require PACKAGE [CONTRAINTE] | Installer un package |
+| symsvel update [PACKAGE] | Mettre à jour les dépendances Composer |
+| symsvel update back | Actualiser le squelette Symfony |
+| symsvel update bo / app / front | Actualiser une interface (un argument par commande) |
+| symsvel remove PACKAGE | Retirer un module facultatif |
+| symsvel documentation:build-dev | Reconstruire le site développeur local |
+| symsvel documentation:sync | Mettre à jour la documentation privée |
+| symsvel permissions:fix | Réparer les ACL locales cache/log |
 
-## Exemples
+Pour toutes les options, utilisez symsvel --help.
 
-```bash
-symsvel doctor
-symsvel create-project --components=all
-symsvel create-project --components=app --directory=backend --dev
-symsvel make:module catalogue --scopes=back,bo,app --vendor=symsvel-framework
-# Après intégration du générateur Tooling :
-symsvel module:migrate Catalogue
-symsvel require symsvel-framework/module-exemple dev-main
-symsvel update symsvel-framework/module-exemple
-```
+## Canaux
 
-La CLI requiert PHP 8.4+, Composer et Git. Node.js/npm sont nécessaires aux composants Svelte, et Python 3 est requis lors de `create-project` pour construire `dev-doc/site/` via un venv MkDocs local. Symfony CLI reste facultative. `dev-doc` est exclu du déploiement de production.
+Le canal stable est choisi par défaut. L'option --dev lors de la création sélectionne les branches de développement. Ce choix est conservé dans le projet, indépendamment de APP_ENV. N'ajoutez pas --dev à update ou require.
 
-Les commandes avancées de synchronisation, migration et récupération appartiennent à la console Symfony du Tooling. Depuis un backend installé, utiliser `php bin/console list symsvel` et `--help` pour obtenir leurs signatures exactes.
+## Permissions locales (CLI 0.3.1+)
 
-### Génération des migrations de module (PR draft)
+Sur macOS/Linux, la CLI prépare les ACL de cache et logs pour le compte PHP-FPM détecté avant l'installation. Lorsque plusieurs comptes sont présents ou si le serveur est arrêté, indiquez celui de votre projet :
 
-`symsvel module:migrate [MonModule] [--workspace=chemin]` délègue à la commande Tooling `symsvel:module:migrate`. La CLI transmet le répertoire courant initial via `--cwd`, indispensable à la détection du module depuis un sous-dossier. Elle n'embarque aucune logique Doctrine. La génération actuelle ne couvre que les créations simples de tables ; les changements de tables existantes et les clés étrangères restent volontairement refusés. Le parcours complet doit être crash-testé avec un EntityManager réel avant de considérer cette fonctionnalité comme terminée.
+~~~bash
+symsvel permissions:fix --http-user=COMPTE
+~~~
 
-### Génération de module dans le workspace Framework
+Vous pouvez aussi définir SYMSVEL_HTTP_USER avant create-project. Linux nécessite setfacl (paquet acl), PHP doit disposer de POSIX. Les ACL ne remplacent pas les droits de traversée des répertoires parents. Si des fichiers appartiennent à un autre utilisateur, une intervention ciblée de l'administrateur local peut être nécessaire. N'exécutez pas la CLI en root et n'utilisez pas chmod 777.
 
-À la racine du checkout contenant `symsvel-cli/` et `symsvel-tooling/`, `symsvel make:module mail --scopes=back,bo` détecte automatiquement le Maker de `symsvel-tooling/src/Module/ModuleMaker.php`. Le Maker de Tooling crée le dépôt frère `symsvel-module-mail/` à la racine du workspace Framework. `--workspace=/chemin/absolu/vers/SymSvel` reste disponible depuis un autre répertoire. La génération depuis un projet client continue de déléguer au Tooling installé dans son backend et conserve son organisation propre.
+## Documentation
 
-### Confidentialité du Setup (19/11/2026)
+Après l'installation, ouvrez dev-doc/site/index.html. Pour la reconstruire, lancez symsvel documentation:build-dev.
 
-Le lancement du serveur local relaie au processus PHP uniquement la
-configuration d'environnement nécessaire et `SYMSVEL_SETUP_NPM` lorsque
-l'exécutable npm a été trouvé. Le diagnostic temporaire qui écrivait le
-`PATH` local dans `.symsvel/npm-trace.log` a été retiré : la CLI ne doit
-pas conserver les chemins ni variables d'environnement du mainteneur
-lors d'une installation normale. La reprise du Wizard et l'exécution
-de npm ne changent pas. Test smoke et CI obligatoires, puis CT XT.
+Pour les procédures internes et les historiques, consultez [les notes de maintenance](../maintainer/).
 
-Le test smoke interdit la persistance de la trace temporaire et du
-`PATH` sérialisé. La consultation en mémoire de `PATH` pour localiser
-`npm` reste nécessaire au fonctionnement du Wizard et n'est pas
-considérée comme une fuite tant qu'aucun journal n'est créé.
+### Distribution SymSvel
 
-### Documentation native accessible au BO (19/11/2026)
-
-La CLI expose `symsvel documentation:sync` et délègue uniquement à la
-commande interne `symsvel:documentation:sync` de Tooling. L'opération
-doit être lancée volontairement après l'installation ou la modification
-des modules : elle rassemble leurs documents déclarés dans
-`backend/var/symsvel/documentation.json`, hors espace public.
-Le Setup, l'installation initiale, le build Svelte et `symsvel update`
-n'invoquent jamais implicitement ce traitement. Ni Python, ni pip,
-ni MkDocs ne sont installés. Le BO consomme le corpus uniquement par
-un endpoint authentifié du module propriétaire. Le test smoke vérifie
-le routage CLI sans publier l'index privé pendant l'installation.
-
-### Mise à jour du squelette Back
-
-`symsvel update back` délègue au lanceur transactionnel de Tooling, sans démarrer Symfony. Il est distinct de `symsvel update` (dépendances Composer) et de la mise à jour d'un module. Le canal du projet sélectionne la source officielle ; les fichiers natifs sont comparés à leur provenance, les modifications locales non conflictuelles sont conservées. Composer résout le lock du projet et un audit bloquant précède la validation de la transaction. Aucun Git applicatif n'est modifié. Les projets sans provenance Back fiable et les conflits sont refusés. À utiliser en développement, avant publication Git du projet ; le déploiement VPS reste indépendant.
-
-Le **site MkDocs développeur** suit un cycle distinct : `create-project`
-le construit dès l'installation des composants, puis le reconstruit après
-l'installation et la synchronisation des modules natifs, avant le Wizard.
-Tooling le régénère également **automatiquement après une opération
-`symsvel require`, `symsvel update` ou `symsvel remove` réussie**, ainsi
-qu'après une mise à jour globale ; en cas de rollback, aucune publication
-documentaire n'a lieu. La commande `symsvel documentation:build-dev` permet
-de le régénérer manuellement après une édition directe de documents.
-Seules les pages de scope
-`dev` sont copiées dans `dev-doc/docs/symsvel/`, jamais les guides
-`admin` ou `user`. Le site statique demeure strictement local.
-
-## Release v0.3.0 (24/11/2026)
-
-Conserve `documentation:build-dev` de la v0.2.1, ajoute `update back` et l'enregistrement de provenance native à la création. Le smoke test contrôle la version annoncée et les délégations. La publication doit suivre les composants compatibles et leurs CI vertes. CT stable sans `--dev` distinct.
-
-## Permissions runtime locales (25/11/2026)
-
-Lors d'un `create-project`, la CLI prépare des ACL nominatives sur `backend/var/cache` et `backend/var/log` **avant** le premier `composer install` (donc avant le warmup Symfony). Elle détecte un unique compte de worker PHP-FPM actif, distinct du compte CLI ; un master root n'est jamais sélectionné. Sur un poste de développement individuel, on peut définir `SYMSVEL_HTTP_USER` avant la création pour sélectionner explicitement le compte du projet. En cas de plusieurs pools, de serveur arrêté, de détection non disponible ou d'ACL refusée, la CLI affiche un diagnostic ; aucune élévation automatique de privilèges ni ouverture globale des droits n'est tentée.
-
-Pour un projet existant, depuis le workspace ou le backend :
-
-```bash
-symsvel permissions:fix --http-user=COMPTE_HTTP
-```
-
-Remplacer `COMPTE_HTTP` par le véritable utilisateur du pool PHP du projet. Sans option, la commande utilise `SYMSVEL_HTTP_USER` ou la détection PHP-FPM. macOS utilise `chmod +a` et Linux `setfacl` (paquet système `acl`, à installer si nécessaire). L'extension PHP POSIX est requise pour cette opération. Les ACL de répertoires sont héritables par les nouveaux fichiers et sous-répertoires, notamment lors des warmups et `cache:clear`. Les ACL existantes ne sont pas supprimées ; si le compte CLI ne possède pas les fichiers à réparer, l'opération peut échouer et nécessite une intervention ciblée de l'administrateur local. Exécuter la CLI comme développeur, jamais root. Aucun changement de `.env.local`, secrets, base SQLite, métadonnées privées ou autre dossier `var` ; les liens symboliques et fichiers à liens physiques multiples sont refusés. Les droits des ancêtres du workspace doivent permettre l'accès HTTP. Ne pas utiliser sur un serveur partagé ou de production : la politique de droits de l'hébergeur reste indépendante (ADR 0006).
-
-Régression : CT stable du 25/11/2026, Twig incapable de créer `var/cache/dev/twig/7d` lors du mail de confirmation App ; correction manuelle des ACL validée par le mainteneur. La CI vérifie le partage réel avec deux comptes sur Linux et macOS, l'héritage et l'exclusion de SQLite. Un nouveau CT de zéro, avec envoi de mail et mise à jour, reste nécessaire avant publication.
-
-**Limites des ACL et régression CI :** macOS accorde également `writeattr` pour les dates des fichiers et `search,delete_child` aux répertoires. Sous Linux, le masque POSIX hérité est limité par le mode demandé lors de la création ou par un `chmod` ultérieur : les répertoires créés en `0777` par Symfony/Twig héritent des droits nominatifs, tandis qu'un mode explicite `0755` peut retirer l'écriture partagée. La CLI ne modifie ni l'umask global ni les modes imposés par une application ; `permissions:fix` répare les entrées existantes accessibles au propriétaire. Les tests couvrent la modification d'un fichier existant, la publication atomique et l'invalidation d'un cache, les logs et le cas restrictif Linux.
-
-**Second CT macOS (25/11/2026) :** le champ `comm` de `ps` affichait un titre de processus tronqué (`php-fpm: pool ww`) et empêchait la détection automatique. La CLI utilise désormais `ps -axww -o uid= -o args=` et identifie les titres complets des workers, en excluant le master et les UID root. Le test reprend les titres constatés sur Homebrew et couvre la détection automatique jusqu'à la pose réelle des ACL avec une sortie `ps` contrôlée, sur les deux OS. Un CT réel reste requis pour confirmer la détection sur la machine du mainteneur.
+Le canal stable utilise `https://packages.symsvel.com`. En `--dev`, la CLI retire ce dépôt Satis du projet initial pour privilégier les sources GitHub de développement ; le catalogue de développement est accessible sur `https://packages-dev.symsvel.com`.

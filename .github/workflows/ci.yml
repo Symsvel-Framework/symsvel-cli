@@ -50,3 +50,27 @@ jobs:
       - run: php tests/runtime-permissions.php
         env:
           SYMSVEL_ACL_TEST_HTTP_USER: ${{ matrix.http-user }}
+
+  windows-bootstrap:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite, sodium, intl
+          coverage: none
+          tools: composer:v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: php -l src/Cli.php
+      - run: php -l src/RuntimePermissions.php
+      - run: php tests/windows-smoke.php
+      - run: .\bin\symsvel.cmd --version
+      - run: .\bin\symsvel.cmd doctor
+      - name: Verify real scoped NTFS ACLs for a distinct user
+        run: ./tests/windows-runtime-permissions.ps1
