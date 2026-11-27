@@ -19,7 +19,7 @@ PHP 8.4+, Composer 2, Git, Node.js, npm et Python 3 (venv et pip). Préparez Pos
 
 ### Systèmes pris en charge
 
-macOS et Linux sont les parcours validés. Windows natif est en préparation, sans obligation de WSL2 ni Docker ; le parcours WSL2 n'est pas encore qualifié non plus. Consultez le [guide de préparation Windows](https://github.com/Symsvel-Framework/symsvel-back/blob/main/docs/guides/01-getting-started/01a-windows.md) avant toute tentative d'installation sur Windows.
+macOS et Linux sont les parcours validés. Windows natif a passé le CT automatisé d'installation initiale avec SQLite sur `dev` le 26 novembre 2026, sans WSL2 ni Docker. Le CT indépendant et le support stable restent à valider ; WSL2 n'est pas encore qualifié. Consultez le [guide de préparation Windows](https://github.com/Symsvel-Framework/symsvel-back/blob/dev/docs/guides/01-getting-started/01a-windows.md).
 
 ## 2. Installer la CLI (macOS / Linux)
 
@@ -41,10 +41,22 @@ Dans PowerShell, après installation des prérequis documentés :
 ~~~powershell
 git clone --branch dev https://github.com/Symsvel-Framework/symsvel-cli.git "$HOME\symsvel-cli"
 $env:Path = "$HOME\symsvel-cli\bin;$env:Path"
-symsvel.cmd doctor
+symsvel doctor
 ~~~
 
-Ajoutez le dossier bin au PATH utilisateur pour les prochains terminaux. Utilisez le Composer-Setup officiel (composer.bat à côté de composer.phar), Git, Node/npm et un vrai Python accessible via python.exe. Le lanceur natif `symsvel.cmd` ne nécessite pas de modifier la politique d'exécution PowerShell. Ce parcours permet la qualification initiale du doctor ; la création complète et les mises à jour restent en cours de qualification. Le Setup intégré tourne sous le compte CLI ; aucune ACL NTFS n'est modifiée automatiquement. Pour un serveur HTTP exécuté sous un autre compte utilisateur Windows activé, lancez `symsvel.cmd permissions:fix --http-user='MACHINE\utilisateur'` depuis le projet. Seuls `backend/var/cache` et `backend/var/log` reçoivent les droits Modify héritables des deux comptes ; groupes, compte système, liens et chemins redirigés sont refusés. La commande ne modifie pas les ACL de la base, des secrets ou du reste du projet. Ce parcours multi-comptes reste en qualification.
+Si la CLI est déjà installée, ne la clonez pas de nouveau. Depuis son dossier (adaptez le chemin si nécessaire) :
+
+~~~powershell
+cd "$HOME\symsvel-cli"
+git switch dev
+git pull --ff-only
+$env:Path = "$HOME\symsvel-cli\bin;$env:Path"
+symsvel doctor
+~~~
+
+`symsvel update` met à jour le framework d'un projet, pas la CLI.
+
+Ajoutez le dossier bin au PATH utilisateur pour les prochains terminaux. Utilisez le Composer-Setup officiel (composer.bat à côté de composer.phar), Git, Node/npm et un vrai Python accessible via python.exe. Le lanceur natif `symsvel.cmd` ne nécessite pas de modifier la politique d'exécution PowerShell. Avec `bin` dans le PATH et `.CMD` dans PATHEXT, utilisez `symsvel` comme sous macOS/Linux ; en cas de problème de résolution, vérifiez `Get-Command symsvel` et utilisez `symsvel.cmd` explicitement. La création initiale avec SQLite a passé la CI ; la maintenance complète reste à qualifier. Le Setup intégré tourne sous le compte CLI ; aucune ACL NTFS n'est modifiée automatiquement. Pour un serveur HTTP exécuté sous un autre compte utilisateur Windows activé, lancez `symsvel permissions:fix --http-user='MACHINE\utilisateur'` depuis le projet. Seuls `backend/var/cache` et `backend/var/log` reçoivent les droits Modify héritables des deux comptes ; groupes, compte système, liens et chemins redirigés sont refusés. La commande ne modifie pas les ACL de la base, des secrets ou du reste du projet. Les ACL et leur héritage ont passé la CI avec un second compte Windows ; l'accès HTTP effectif sous ce compte reste à valider.
 
 ## 3. Créer un projet
 
@@ -65,7 +77,7 @@ Le Setup local s'ouvre dans le navigateur. Il configure les origines HTTP, la ba
 
 Pour reprendre une installation interrompue : symsvel setup.
 
-Le canal stable est recommandé. Ajoutez --dev seulement pour expérimenter les branches de développement.
+Le canal stable est recommandé sur les systèmes déjà validés. Ajoutez `--dev` seulement pour expérimenter les branches de développement. Sous Windows, utilisez pour l'instant la CLI `dev` et `symsvel create-project --components=all --dev` dans un nouveau dossier vide, avec SQLite ; ne créez pas de projet métier avant qualification stable.
 
 ## 4. Développer et maintenir
 

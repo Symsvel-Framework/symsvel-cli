@@ -5,7 +5,7 @@ Depuis le 22/11/2026, la CI active `.github/workflows/ci.yml` est exécutée sur
 Les runners du mainteneur ne servent plus ces dépôts publics : ils restent réservés à `symsvel-packages` et `symsvel-recipes` (privés). CI et crash-tests restent des validations distinctes.
 
 
-Le job `windows-bootstrap` sur Windows natif teste le lanceur CMD, doctor, la résolution Composer et les primitives de bootstrap. Il ne qualifie pas encore le parcours complet, les transactions ou les ACL NTFS multi-comptes. Les jobs Unix existants restent inchangés.
+Le job `windows-bootstrap` sur Windows natif teste le lanceur CMD, doctor, la résolution Composer et les primitives de bootstrap. Il vérifie aussi les ACL NTFS ciblées avec un compte utilisateur distinct. Le parcours d'installation complet et les transactions sont couverts séparément par les CI Back et Tooling. Les jobs Unix existants restent inchangés.
 
 La détection Windows accepte les scripts CMD/BAT présents sur le PATH sans exiger leur bit exécutable POSIX. Composer PHAR est lancé directement par PHP lorsque disponible (Composer-Setup et setup-php), sans interpoler les arguments dans une commande shell.
 
@@ -14,3 +14,5 @@ La suppression du Git upstream sous Windows traite les objets en lecture seule d
 Le job Windows crée un compte HTTP local jetable pour vérifier les ACL NTFS ciblées, leur héritage sur un nouveau fichier, le refus des hardlinks avant toute mutation, la préservation de la base SQLite et la répétabilité. L'exécution CLI normale ne crée aucun compte et ne demande pas de privilèges administrateur ; le compte développeur doit pouvoir modifier les DACL ciblées. Les comptes de service/groupes ne sont pas implicitement sélectionnés.
 
 Le processus ACL Windows isole son PSModulePath sur les modules système de Windows PowerShell 5.1, notamment lorsque la CLI est lancée depuis PowerShell 7. Aucun changement de politique d'exécution ni de configuration globale.
+
+Le [run CLI 45873156824](https://github.com/Symsvel-Framework/symsvel-cli/actions/runs/45873156824) est vert, de même que le [CT initial Back sous Windows et SQLite](https://github.com/Symsvel-Framework/symsvel-back/actions/runs/45876116082). La qualification indépendante Windows 11 et le support stable restent à valider.
